@@ -16,7 +16,8 @@ from app.services.auth_service import AuthService
 from app.services.product_service import ProductService
 from app.services.token_service import TokenService
 from app.services.user_service import UserService
-
+from app.repositories.audit_log_repository import AuditLogRepository
+from app.services.audit_log_service import AuditLogService
 
 # =========================================================
 # OAuth2 / Swagger
@@ -119,3 +120,12 @@ def get_current_user_id_flexible() -> UUID:
     Idealmente no debería usarse ya en endpoints protegidos.
     """
     return UUID("00000000-0000-0000-0000-000000000000")
+
+async def get_audit_log_repository() -> AuditLogRepository:
+    return AuditLogRepository()
+
+
+async def get_audit_log_service(
+    repository: AuditLogRepository = Depends(get_audit_log_repository),
+) -> AuditLogService:
+    return AuditLogService(repository)

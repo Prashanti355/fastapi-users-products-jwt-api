@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.dependencies import (
+    get_audit_log_service,
     get_current_active_user,
     get_current_superuser,
     get_product_service,
@@ -22,12 +23,11 @@ from app.schemas.product import (
     ProductUpdateRequest,
 )
 from app.schemas.response import ApiResponse, PagedResponse
+from app.services.audit_log_service import AuditLogService
 from app.services.product_service import ProductService
 
 router = APIRouter()
 
-
-# ---------- READ (PÚBLICO) ----------
 
 @router.get(
     "",
@@ -115,8 +115,6 @@ async def get_product_by_id(
     )
 
 
-# ---------- CREATE / UPDATE (USUARIO ACTIVO) ----------
-
 @router.post(
     "",
     response_model=ApiResponse[ProductBasic],
@@ -131,11 +129,21 @@ async def create_product(
         description="Datos del nuevo producto"
     ),
     service: ProductService = Depends(get_product_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_active_user),
 ):
     new_product = await service.create_product(
         db,
         obj_in=product_data
+    )
+
+    await audit_log_service.log_event(
+        db,
+        action="create_product",
+        entity="product",
+        entity_id=str(new_product.id),
+        actor=current_user,
+        detail=f"Producto creado: {new_product.name}",
     )
 
     return ApiResponse[ProductBasic](
@@ -160,12 +168,22 @@ async def update_product(
         description="Datos completos del producto"
     ),
     service: ProductService = Depends(get_product_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_active_user),
 ):
     updated_product = await service.update_product(
         db,
         product_id=id,
         obj_in=product_data
+    )
+
+    await audit_log_service.log_event(
+        db,
+        action="update_product",
+        entity="product",
+        entity_id=str(updated_product.id),
+        actor=current_user,
+        detail=f"Actualización completa del producto {updated_product.name}",
     )
 
     return ApiResponse[ProductBasic](
@@ -193,6 +211,7 @@ async def partial_update_product(
         description="Datos parciales del producto"
     ),
     service: ProductService = Depends(get_product_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_active_user),
 ):
     updated_product = await service.update_product(
@@ -201,14 +220,21 @@ async def partial_update_product(
         obj_in=product_data
     )
 
+    await audit_log_service.log_event(
+        db,
+        action="partial_update_product",
+        entity="product",
+        entity_id=str(updated_product.id),
+        actor=current_user,
+        detail=f"Actualización parcial del producto {updated_product.name}",
+    )
+
     return ApiResponse[ProductBasic](
         codigo=200,
         mensaje="Producto actualizado parcialmente exitosamente.",
         resultado=ProductBasic.model_validate(updated_product),
     )
 
-
-# ---------- STATUS / ADMIN (SUPERUSUARIO) ----------
 
 @router.patch(
     "/{id}/activate",
@@ -221,9 +247,19 @@ async def activate_product(
     db: AsyncSession = Depends(get_db),
     id: UUID = Path(..., description="ID del producto a activar"),
     service: ProductService = Depends(get_product_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
 ):
     product = await service.activate_product(db, product_id=id)
+
+    await audit_log_service.log_event(
+        db,
+        action="activate_product",
+        entity="product",
+        entity_id=str(product.id),
+        actor=current_user,
+        detail=f"Producto activado: {product.name}",
+    )
 
     return ApiResponse[ProductToggleStatusResult](
         codigo=200,
@@ -243,9 +279,19 @@ async def deactivate_product(
     db: AsyncSession = Depends(get_db),
     id: UUID = Path(..., description="ID del producto a desactivar"),
     service: ProductService = Depends(get_product_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
 ):
     product = await service.deactivate_product(db, product_id=id)
+
+    await audit_log_service.log_event(
+        db,
+        action="deactivate_product",
+        entity="product",
+        entity_id=str(product.id),
+        actor=current_user,
+        detail=f"Producto desactivado: {product.name}",
+    )
 
     return ApiResponse[ProductToggleStatusResult](
         codigo=200,
@@ -253,8 +299,6 @@ async def deactivate_product(
         resultado=ProductToggleStatusResult.model_validate(product),
     )
 
-
-# ---------- DELETE / RESTORE (SUPERUSUARIO) ----------
 
 @router.delete(
     "/{id}",
@@ -271,12 +315,24 @@ async def delete_product(
         description="Si es true, realiza eliminación física"
     ),
     service: ProductService = Depends(get_product_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
 ):
     deleted_product = await service.delete_product(
         db,
         product_id=id,
         hard_delete=hard
+    )
+
+    delete_mode = "físicamente" if hard else "lógicamente"
+
+    await audit_log_service.log_event(
+        db,
+        action="delete_product",
+        entity="product",
+        entity_id=str(deleted_product.id),
+        actor=current_user,
+        detail=f"Producto eliminado {delete_mode}: {deleted_product.name}",
     )
 
     return ApiResponse[ProductDeleteResult](
@@ -297,11 +353,21 @@ async def restore_product(
     db: AsyncSession = Depends(get_db),
     id: UUID = Path(..., description="ID del producto a restaurar"),
     service: ProductService = Depends(get_product_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
 ):
     restored_product = await service.restore_product(
         db,
         product_id=id
+    )
+
+    await audit_log_service.log_event(
+        db,
+        action="restore_product",
+        entity="product",
+        entity_id=str(restored_product.id),
+        actor=current_user,
+        detail=f"Producto restaurado: {restored_product.name}",
     )
 
     return ApiResponse[ProductRestoreResult](

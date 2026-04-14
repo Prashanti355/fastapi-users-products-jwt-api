@@ -3,7 +3,11 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.dependencies import get_auth_service, get_current_active_user
+from app.dependencies import (
+    get_audit_log_service,
+    get_auth_service,
+    get_current_active_user,
+)
 from app.schemas.auth import (
     CurrentUser,
     LoginRequest,
@@ -12,6 +16,7 @@ from app.schemas.auth import (
     TokenResponse,
 )
 from app.schemas.response import ApiResponse
+from app.services.audit_log_service import AuditLogService
 from app.services.auth_service import AuthService
 
 router = APIRouter()
@@ -28,20 +33,29 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
 ):
-    """
-    Endpoint compatible con OAuth2/Swagger.
-    Recibe credenciales como formulario, no como JSON.
-    """
     login_data = LoginRequest(
         username=form_data.username,
         password=form_data.password
     )
 
-    return await auth_service.login(
+    tokens = await auth_service.login(
         db,
         login_data=login_data
     )
+
+    current_user = await auth_service.get_current_user(db, token=tokens.access_token)
+
+    await audit_log_service.log_event(
+        db,
+        action="login",
+        entity="auth",
+        actor=current_user,
+        detail="Inicio de sesión exitoso."
+    )
+
+    return tokens
 
 
 @router.post(
@@ -58,10 +72,22 @@ async def register(
     ),
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
 ):
     tokens = await auth_service.register(
         db,
         user_data=user_data
+    )
+
+    current_user = await auth_service.get_current_user(db, token=tokens.access_token)
+
+    await audit_log_service.log_event(
+        db,
+        action="register",
+        entity="user",
+        entity_id=str(current_user.id),
+        actor=current_user,
+        detail="Registro público de usuario exitoso."
     )
 
     return ApiResponse[TokenResponse](
@@ -85,10 +111,21 @@ async def refresh_token(
     ),
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
 ):
     tokens = await auth_service.refresh_token(
         db,
         refresh_token=refresh_data.refresh_token
+    )
+
+    current_user = await auth_service.get_current_user(db, token=tokens.access_token)
+
+    await audit_log_service.log_event(
+        db,
+        action="refresh_token",
+        entity="auth",
+        actor=current_user,
+        detail="Renovación de tokens exitosa."
     )
 
     return ApiResponse[TokenResponse](

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.exceptions.auth_exceptions import InsufficientPermissionsException
 from app.dependencies import (
+    get_audit_log_service,
     get_current_active_user,
     get_current_superuser,
     get_user_service,
@@ -23,6 +24,7 @@ from app.schemas.user import (
     UserToggleActiveResult,
     UserUpdateRequest,
 )
+from app.services.audit_log_service import AuditLogService
 from app.services.user_service import UserService
 
 router = APIRouter()
@@ -39,8 +41,6 @@ def _ensure_self_or_superuser(
     if current_user.id != target_user_id:
         raise InsufficientPermissionsException(message=action_message)
 
-
-# ---------- READ ----------
 
 @router.get(
     "",
@@ -105,8 +105,6 @@ async def get_user(
     )
 
 
-# ---------- CREATE ----------
-
 @router.post(
     "",
     response_model=ApiResponse[UserSchema],
@@ -117,9 +115,19 @@ async def create_user(
     user_in: UserCreateRequest,
     db: AsyncSession = Depends(get_db),
     user_service: UserService = Depends(get_user_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
 ):
     user = await user_service.create_user(db, user_in=user_in)
+
+    await audit_log_service.log_event(
+        db,
+        action="create_user",
+        entity="user",
+        entity_id=str(user.id),
+        actor=current_user,
+        detail=f"Usuario creado por superusuario: {user.username}",
+    )
 
     return ApiResponse(
         codigo=201,
@@ -127,8 +135,6 @@ async def create_user(
         resultado=user
     )
 
-
-# ---------- UPDATE ----------
 
 @router.put(
     "/{user_id}",
@@ -141,6 +147,7 @@ async def update_user(
     user_in: UserUpdateRequest,
     db: AsyncSession = Depends(get_db),
     user_service: UserService = Depends(get_user_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_active_user),
 ):
     _ensure_self_or_superuser(
@@ -154,6 +161,15 @@ async def update_user(
         user_id=user_id,
         user_in=user_in,
         current_user=current_user
+    )
+
+    await audit_log_service.log_event(
+        db,
+        action="update_user",
+        entity="user",
+        entity_id=str(user.id),
+        actor=current_user,
+        detail=f"Actualización completa del usuario {user.username}",
     )
 
     return ApiResponse(
@@ -174,6 +190,7 @@ async def partial_update_user(
     user_in: UserPartialUpdateRequest,
     db: AsyncSession = Depends(get_db),
     user_service: UserService = Depends(get_user_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_active_user),
 ):
     _ensure_self_or_superuser(
@@ -187,6 +204,15 @@ async def partial_update_user(
         user_id=user_id,
         user_in=user_in,
         current_user=current_user
+    )
+
+    await audit_log_service.log_event(
+        db,
+        action="partial_update_user",
+        entity="user",
+        entity_id=str(user.id),
+        actor=current_user,
+        detail=f"Actualización parcial del usuario {user.username}",
     )
 
     return ApiResponse(
@@ -207,6 +233,7 @@ async def change_password(
     password_data: PasswordChangeRequest,
     db: AsyncSession = Depends(get_db),
     user_service: UserService = Depends(get_user_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_active_user),
 ):
     if current_user.id != user_id:
@@ -220,14 +247,21 @@ async def change_password(
         password_data=password_data
     )
 
+    await audit_log_service.log_event(
+        db,
+        action="change_password",
+        entity="user",
+        entity_id=str(user_id),
+        actor=current_user,
+        detail="Cambio de contraseña exitoso.",
+    )
+
     return ApiResponseSimple(
         codigo=200,
         mensaje="Contraseña actualizada correctamente.",
         resultado={}
     )
 
-
-# ---------- STATUS / ADMIN ----------
 
 @router.patch(
     "/{user_id}/activate",
@@ -239,9 +273,19 @@ async def activate_user(
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
     user_service: UserService = Depends(get_user_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
 ):
     user = await user_service.activate_user(db, user_id=user_id)
+
+    await audit_log_service.log_event(
+        db,
+        action="activate_user",
+        entity="user",
+        entity_id=str(user.id),
+        actor=current_user,
+        detail=f"Usuario activado: {user.username}",
+    )
 
     return ApiResponse(
         codigo=200,
@@ -264,11 +308,21 @@ async def deactivate_user(
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
     user_service: UserService = Depends(get_user_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
 ):
     user = await user_service.deactivate_user(
         db,
         user_id=user_id
+    )
+
+    await audit_log_service.log_event(
+        db,
+        action="deactivate_user",
+        entity="user",
+        entity_id=str(user.id),
+        actor=current_user,
+        detail=f"Usuario desactivado: {user.username}",
     )
 
     return ApiResponse(
@@ -282,8 +336,6 @@ async def deactivate_user(
     )
 
 
-# ---------- DELETE / RESTORE ----------
-
 @router.delete(
     "/{user_id}",
     response_model=ApiResponse[UserDeleteResult],
@@ -294,12 +346,22 @@ async def delete_user(
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
     user_service: UserService = Depends(get_user_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
 ):
     user = await user_service.delete_user(
         db,
         user_id=user_id,
         deleted_by=current_user.id
+    )
+
+    await audit_log_service.log_event(
+        db,
+        action="delete_user",
+        entity="user",
+        entity_id=str(user.id),
+        actor=current_user,
+        detail=f"Usuario eliminado lógicamente: {user.username}",
     )
 
     return ApiResponse(
@@ -323,9 +385,19 @@ async def restore_user(
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
     user_service: UserService = Depends(get_user_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
 ):
     user = await user_service.restore_user(db, user_id=user_id)
+
+    await audit_log_service.log_event(
+        db,
+        action="restore_user",
+        entity="user",
+        entity_id=str(user.id),
+        actor=current_user,
+        detail=f"Usuario restaurado: {user.username}",
+    )
 
     return ApiResponse(
         codigo=200,
