@@ -1,4 +1,3 @@
-````md
 # FastAPI Users & Products JWT API
 
 API REST con FastAPI para gestión de usuarios y productos, autenticación JWT, PostgreSQL y Docker.
@@ -12,6 +11,7 @@ El proyecto fue construido de forma incremental, comenzando por el manejo de usu
 ## Características implementadas
 
 ### Usuarios
+
 - Alta de usuarios
 - Consulta individual y paginada
 - Actualización completa y parcial
@@ -21,6 +21,7 @@ El proyecto fue construido de forma incremental, comenzando por el manejo de usu
 - Restricción de autoedición de campos privilegiados para usuarios normales
 
 ### Productos
+
 - Alta de productos
 - Consulta individual y paginada
 - Actualización completa y parcial
@@ -29,6 +30,7 @@ El proyecto fue construido de forma incremental, comenzando por el manejo de usu
 - Catálogo público sin exponer productos eliminados lógicamente
 
 ### Seguridad
+
 - Registro público de usuarios
 - Login con JWT
 - Access token y refresh token
@@ -112,41 +114,41 @@ docker-compose.yml
 requirements.txt
 .env.example
 README.md
-````
+```
 
 ## Módulos disponibles
 
 ### Auth
 
-* `POST /api/v1/auth/register`
-* `POST /api/v1/auth/login`
-* `POST /api/v1/auth/refresh-token`
-* `GET /api/v1/auth/me`
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/refresh-token`
+- `GET /api/v1/auth/me`
 
 ### Users
 
-* `GET /api/v1/users`
-* `GET /api/v1/users/{user_id}`
-* `POST /api/v1/users`
-* `PUT /api/v1/users/{user_id}`
-* `PATCH /api/v1/users/{user_id}`
-* `POST /api/v1/users/{user_id}/change-password`
-* `PATCH /api/v1/users/{user_id}/activate`
-* `PATCH /api/v1/users/{user_id}/deactivate`
-* `DELETE /api/v1/users/{user_id}`
-* `PATCH /api/v1/users/{user_id}/restore`
+- `GET /api/v1/users`
+- `GET /api/v1/users/{user_id}`
+- `POST /api/v1/users`
+- `PUT /api/v1/users/{user_id}`
+- `PATCH /api/v1/users/{user_id}`
+- `POST /api/v1/users/{user_id}/change-password`
+- `PATCH /api/v1/users/{user_id}/activate`
+- `PATCH /api/v1/users/{user_id}/deactivate`
+- `DELETE /api/v1/users/{user_id}`
+- `PATCH /api/v1/users/{user_id}/restore`
 
 ### Products
 
-* `GET /api/v1/products`
-* `GET /api/v1/products/{id}`
-* `POST /api/v1/products`
-* `PUT /api/v1/products/{id}`
-* `PATCH /api/v1/products/{id}`
-* `PATCH /api/v1/products/{id}/activate`
-* `PATCH /api/v1/products/{id}/deactivate`
-* `DELETE /api/v1/products/{id}`
-* `PATCH /api/v1/products/{id}/restore`
+- `GET /api/v1/products`
+- `GET /api/v1/products/{id}`
+- `POST /api/v1/products`
+- `PUT /api/v1/products/{id}`
+- `PATCH /api/v1/products/{id}`
+- `PATCH /api/v1/products/{id}/activate`
+- `PATCH /api/v1/products/{id}/deactivate`
+- `DELETE /api/v1/products/{id}`
+- `PATCH /api/v1/products/{id}/restore`
 
 ## Ejecución con Docker
 
@@ -189,8 +191,8 @@ docker compose ps
 
 ### 5. Acceder a la aplicación
 
-* Swagger UI: `http://localhost:8000/docs`
-* Health check: `http://localhost:8000/health`
+- Swagger UI: `http://localhost:8000/docs`
+- Health check: `http://localhost:8000/health`
 
 ### 6. Detener contenedores
 
@@ -240,24 +242,24 @@ El proyecto usa variables de entorno para evitar hardcodeo y separar configuraci
 
 Variables principales:
 
-* `PROJECT_NAME`
-* `VERSION`
-* `DEBUG`
-* `ENVIRONMENT`
-* `API_V1_STR`
-* `POSTGRES_USER`
-* `POSTGRES_PASSWORD`
-* `POSTGRES_DB`
-* `POSTGRES_HOST`
-* `POSTGRES_PORT`
-* `APP_PORT`
-* `SECRET_KEY`
-* `ALGORITHM`
-* `ACCESS_TOKEN_EXPIRE_MINUTES`
-* `REFRESH_TOKEN_EXPIRE_DAYS`
-* `DEFAULT_PAGE_SIZE`
-* `MAX_PAGE_SIZE`
-* `BACKEND_CORS_ORIGINS`
+- `PROJECT_NAME`
+- `VERSION`
+- `DEBUG`
+- `ENVIRONMENT`
+- `API_V1_STR`
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `POSTGRES_DB`
+- `POSTGRES_HOST`
+- `POSTGRES_PORT`
+- `APP_PORT`
+- `SECRET_KEY`
+- `ALGORITHM`
+- `ACCESS_TOKEN_EXPIRE_MINUTES`
+- `REFRESH_TOKEN_EXPIRE_DAYS`
+- `DEFAULT_PAGE_SIZE`
+- `MAX_PAGE_SIZE`
+- `BACKEND_CORS_ORIGINS`
 
 ## Archivo `.env.example`
 
@@ -269,8 +271,8 @@ El archivo `.env` real no debe subirse al repositorio.
 
 La API implementa autenticación basada en JWT con doble token:
 
-* **Access token** para acceso a rutas protegidas
-* **Refresh token** para obtener un nuevo par de tokens
+- **Access token** para acceso a rutas protegidas
+- **Refresh token** para obtener un nuevo par de tokens
 
 ### Flujo básico
 
@@ -286,65 +288,64 @@ Swagger permite autenticarse usando el botón **Authorize**.
 
 ### Público
 
-* Lectura de productos
+- Lectura de productos
 
 ### Usuario autenticado
 
-* Operaciones protegidas de escritura en productos
-* Consulta y actualización del propio usuario
-* Cambio de contraseña
-* Consulta del usuario autenticado actual
+- Operaciones protegidas de escritura en productos
+- Consulta y actualización del propio usuario
+- Cambio de contraseña
+- Consulta del usuario autenticado actual
 
 ### Superusuario
 
-* Listado completo de usuarios
-* Creación administrativa de usuarios
-* Activación, desactivación, eliminación y restauración de usuarios
-* Activación, desactivación, eliminación y restauración de productos
+- Listado completo de usuarios
+- Creación administrativa de usuarios
+- Activación, desactivación, eliminación y restauración de usuarios
+- Activación, desactivación, eliminación y restauración de productos
 
 ## Pruebas incluidas
 
 Actualmente el proyecto incluye scripts base de validación:
 
-* `tests/test_models.py`
-* `tests/test_db.py`
-* `tests/test_connection.py`
+- `tests/test_models.py`
+- `tests/test_db.py`
+- `tests/test_connection.py`
 
 Además, se validó funcionalmente:
 
-* flujo de usuarios
-* flujo de productos
-* flujo de autenticación
-* autorización por roles
-* protección de endpoints
-* integración con Swagger
+- flujo de usuarios
+- flujo de productos
+- flujo de autenticación
+- autorización por roles
+- protección de endpoints
+- integración con Swagger
 
 ## Estado actual
 
 Hasta este punto, el proyecto ya implementa:
 
-* módulo de usuarios
-* módulo de productos
-* autenticación y autorización con JWT
-* control de acceso por roles
-* documentación interactiva
-* despliegue con Docker
+- módulo de usuarios
+- módulo de productos
+- autenticación y autorización con JWT
+- control de acceso por roles
+- documentación interactiva
+- despliegue con Docker
 
 ## Trabajo siguiente
 
 Las siguientes etapas del proyecto contemplan:
 
-* configuración y pruebas de CORS
-* logs técnicos
-* logs de auditoría
-* pruebas unitarias e integración
-* endurecimiento adicional de seguridad
+- configuración y pruebas de CORS
+- logs técnicos
+- logs de auditoría
+- pruebas unitarias e integración
+- endurecimiento adicional de seguridad
 
 ## Autor
 
 Prashanti Peña Guevara
 
-Proyecto desarrollado como práctica progresiva de backend orientada a construir una API escalable, bien estructurada y cercana a un entorno real.
-
+Proyecto desarrollado como práctica progresiva de backend orientada a construir una API escalable.
 ```
 ```
