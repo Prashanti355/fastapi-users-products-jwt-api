@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Variables de entorno
+.env
+.env.*
+
+# IDEs
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs/
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Bases de datos accidentales
+*.sqlite3
+*.db
+
+# Persistencia local de Docker / PostgreSQL
+.data/
+postgres_data/
+
+# Archivos temporales
+*.tmp
+*.temp
+
+# Jupyter / notebooks
+.ipynb_checkpoints/
+
+# Docker overrides locales
+docker-compose.override.yml
