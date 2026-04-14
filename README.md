@@ -1,5 +1,3 @@
-Aquí va el `README.md` completo, ya listo para copiar y pegar tal cual:
-
 ````md
 # FastAPI Users & Products JWT API
 
