@@ -42,6 +42,8 @@ jobs:
       POSTGRES_HOST: 127.0.0.1
       POSTGRES_PORT: 5432
 
+      DATABASE_URL: postgresql+asyncpg://fastapi_app:fastapi_password@127.0.0.1:5432/fastapi_db
+
       APP_PORT: 8000
 
       SECRET_KEY: ci-secret-key-with-at-least-32-characters
@@ -52,6 +54,7 @@ jobs:
       DEFAULT_PAGE_SIZE: 10
       MAX_PAGE_SIZE: 100
       BACKEND_CORS_ORIGINS: '["http://localhost:8000","http://localhost:5173"]'
+
       PYTHONPATH: .
 
     steps:
@@ -71,6 +74,29 @@ jobs:
 
       - name: Run database migrations
         run: alembic upgrade head
+
+      - name: Verify schema after migrations
+        run: |
+          python - <<'PY'
+          import asyncio
+          from sqlalchemy import text
+          from app.core.database import engine
+
+          async def main():
+              async with engine.begin() as conn:
+                  result = await conn.execute(
+                      text("SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;")
+                  )
+                  tables = [row[0] for row in result]
+                  print("Tables in public schema:", tables)
+
+                  required = {"alembic_version", "audit_logs", "products", "users"}
+                  missing = required - set(tables)
+                  if missing:
+                      raise SystemExit(f"Missing tables after migrations: {sorted(missing)}")
+
+          asyncio.run(main())
+          PY
 
       - name: Run tests
         run: python -m pytest tests/unit tests/integration -q
