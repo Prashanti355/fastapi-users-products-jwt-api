@@ -4,9 +4,9 @@ API REST con FastAPI para gestión de usuarios y productos, autenticación JWT, 
 
 ## Descripción
 
-Este proyecto implementa una API backend desarrollada con FastAPI siguiendo una arquitectura por capas. Actualmente incluye módulos de usuarios, productos y autenticación con JWT, además de control de acceso por roles, documentación interactiva con Swagger y despliegue con Docker Compose.
+Este proyecto implementa una API backend desarrollada con FastAPI siguiendo una arquitectura por capas. Actualmente incluye módulos de usuarios, productos y autenticación con JWT, además de control de acceso por roles, documentación interactiva con Swagger, configuración CORS, logs técnicos, logs de auditoría y pruebas automatizadas.
 
-El proyecto fue construido de forma incremental, comenzando por el manejo de usuarios, después productos y finalmente autenticación y autorización. La estructura está preparada para seguir creciendo con pruebas automatizadas, configuración de CORS, logs técnicos, auditoría y otros módulos adicionales.
+El proyecto fue construido de forma incremental, comenzando por el manejo de usuarios, después productos y finalmente autenticación y autorización. Posteriormente se añadieron endurecimientos de seguridad, pruebas unitarias e integración, observabilidad técnica y auditoría de eventos sensibles.
 
 ## Características implementadas
 
@@ -19,6 +19,7 @@ El proyecto fue construido de forma incremental, comenzando por el manejo de usu
 - Activación y desactivación
 - Eliminación lógica y restauración
 - Restricción de autoedición de campos privilegiados para usuarios normales
+- Creación administrativa de usuarios por superusuario
 
 ### Productos
 
@@ -28,6 +29,7 @@ El proyecto fue construido de forma incremental, comenzando por el manejo de usu
 - Activación y desactivación
 - Eliminación lógica y restauración
 - Catálogo público sin exponer productos eliminados lógicamente
+- Protección de operaciones administrativas para superusuario
 
 ### Seguridad
 
@@ -41,6 +43,22 @@ El proyecto fue construido de forma incremental, comenzando por el manejo de usu
   - usuario autenticado
   - superusuario
 - Endurecimiento del registro público para impedir autoelevación de privilegios
+- Restricción de modificación de campos privilegiados para usuarios normales
+
+### Observabilidad
+
+- Configuración CORS para orígenes permitidos
+- Logs técnicos persistidos en archivo
+- Request ID por petición
+- Header `X-Request-ID` en respuestas
+- Logs de auditoría persistidos en PostgreSQL para eventos sensibles
+
+### Pruebas
+
+- Pruebas unitarias de seguridad, tokens y servicios
+- Pruebas de integración para auth, users y products
+- Ejecución reproducible dentro de Docker
+- Batería automatizada con 98 pruebas exitosas
 
 ## Tecnologías utilizadas
 
@@ -54,6 +72,10 @@ El proyecto fue construido de forma incremental, comenzando por el manejo de usu
 - Docker
 - Docker Compose
 - Swagger / OpenAPI
+- pytest
+- pytest-asyncio
+- httpx
+- pytest-mock
 
 ## Arquitectura
 
@@ -64,7 +86,7 @@ El proyecto sigue una arquitectura por capas para separar responsabilidades y fa
 - `services/` → lógica de negocio
 - `repositories/` → acceso a datos
 - `models/` → entidades de base de datos
-- `core/` → configuración, seguridad, excepciones y handlers
+- `core/` → configuración, seguridad, logging, excepciones y handlers
 
 ## Estructura del proyecto
 
@@ -80,13 +102,17 @@ app/
 ├── core/
 │   ├── config.py
 │   ├── database.py
+│   ├── logging_config.py
+│   ├── request_logging_middleware.py
 │   ├── security.py
 │   ├── exceptions/
 │   └── handlers/
 ├── models/
+│   ├── audit_log.py
 │   ├── product.py
 │   └── user.py
 ├── repositories/
+│   ├── audit_log_repository.py
 │   ├── base.py
 │   ├── product_repository.py
 │   └── user_repository.py
@@ -97,6 +123,7 @@ app/
 │   ├── response.py
 │   └── user.py
 ├── services/
+│   ├── audit_log_service.py
 │   ├── auth_service.py
 │   ├── product_service.py
 │   ├── token_service.py
@@ -107,11 +134,25 @@ docker/
 └── fastapi/
     └── Dockerfile
 tests/
+├── integration/
+│   ├── conftest.py
+│   ├── test_auth_endpoints.py
+│   ├── test_products_endpoints.py
+│   └── test_users_endpoints.py
+├── unit/
+│   ├── test_auth_service.py
+│   ├── test_product_service.py
+│   ├── test_security.py
+│   ├── test_token_service.py
+│   └── test_user_service.py
 ├── test_connection.py
 ├── test_db.py
 └── test_models.py
+logs/
 docker-compose.yml
+pytest.ini
 requirements.txt
+requirements-dev.txt
 .env.example
 README.md
 ```
@@ -227,7 +268,7 @@ python -m venv .venv
 ### 3. Instalar dependencias
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt -r requirements-dev.txt
 ```
 
 ### 4. Ejecutar la API
@@ -304,22 +345,108 @@ Swagger permite autenticarse usando el botón **Authorize**.
 - Activación, desactivación, eliminación y restauración de usuarios
 - Activación, desactivación, eliminación y restauración de productos
 
-## Pruebas incluidas
+## CORS
 
-Actualmente el proyecto incluye scripts base de validación:
+La API incluye configuración CORS con lista explícita de orígenes permitidos.
 
+Se valida:
+
+- preflight `OPTIONS`
+- origen permitido
+- origen no permitido
+- soporte para header `Authorization`
+- compatibilidad con rutas públicas y protegidas
+
+## Logs técnicos
+
+La aplicación registra logs técnicos en archivos persistidos fuera del contenedor.
+
+Archivos generados:
+
+- `logs/technical.log`
+- `logs/error.log`
+
+Cada request incluye:
+
+- `request_id`
+- método HTTP
+- ruta
+- status code
+- latencia
+- IP cliente
+
+Además, la API devuelve el header:
+
+- `X-Request-ID`
+
+## Logs de auditoría
+
+La aplicación registra eventos sensibles de negocio en PostgreSQL mediante la tabla:
+
+- `audit_logs`
+
+Eventos auditados actualmente:
+
+- `register`
+- `login`
+- `refresh_token`
+- `create_user`
+- `update_user`
+- `partial_update_user`
+- `change_password`
+- `activate_user`
+- `deactivate_user`
+- `delete_user`
+- `restore_user`
+- `create_product`
+- `update_product`
+- `partial_update_product`
+- `activate_product`
+- `deactivate_product`
+- `delete_product`
+- `restore_product`
+
+Cada registro de auditoría incluye:
+
+- acción
+- entidad
+- identificador de entidad
+- actor
+- rol del actor
+- estado
+- detalle
+- timestamp
+
+## Pruebas automatizadas
+
+El proyecto incluye:
+
+### Scripts base
 - `tests/test_models.py`
 - `tests/test_db.py`
 - `tests/test_connection.py`
 
-Además, se validó funcionalmente:
+### Pruebas unitarias
+- `tests/unit/test_security.py`
+- `tests/unit/test_token_service.py`
+- `tests/unit/test_auth_service.py`
+- `tests/unit/test_user_service.py`
+- `tests/unit/test_product_service.py`
 
-- flujo de usuarios
-- flujo de productos
-- flujo de autenticación
-- autorización por roles
-- protección de endpoints
-- integración con Swagger
+### Pruebas de integración
+- `tests/integration/test_auth_endpoints.py`
+- `tests/integration/test_users_endpoints.py`
+- `tests/integration/test_products_endpoints.py`
+
+### Ejecutar toda la batería
+
+```bash
+docker compose exec api pytest tests/unit tests/integration -v
+```
+
+Resultado actual:
+
+- **98 pruebas aprobadas**
 
 ## Estado actual
 
@@ -329,23 +456,26 @@ Hasta este punto, el proyecto ya implementa:
 - módulo de productos
 - autenticación y autorización con JWT
 - control de acceso por roles
+- CORS
+- logs técnicos
+- logs de auditoría
 - documentación interactiva
+- pruebas unitarias
+- pruebas de integración
 - despliegue con Docker
 
 ## Trabajo siguiente
 
 Las siguientes etapas del proyecto contemplan:
 
-- configuración y pruebas de CORS
-- logs técnicos
-- logs de auditoría
-- pruebas unitarias e integración
-- endurecimiento adicional de seguridad
+- migraciones formales con Alembic
+- CI para ejecución automática de pruebas
+- cobertura de pruebas
+- documentación adicional de endpoints y arquitectura
+- mejoras adicionales de observabilidad y seguridad
 
 ## Autor
 
 Prashanti Peña Guevara
 
-Proyecto desarrollado como práctica progresiva de backend orientada a construir una API escalable.
-```
-```
+Proyecto desarrollado como práctica progresiva de backend orientada a construir una API escalable, bien estructurada y cercana a un entorno real.
