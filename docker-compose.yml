@@ -40,6 +40,9 @@ services:
       - ./tests:/home/python/tests
       - ./pytest.ini:/home/python/pytest.ini
       - ./logs:/home/python/logs
+      - ./alembic:/home/python/alembic
+      - ./alembic.ini:/home/python/alembic.ini
+      
     command: >
       sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     networks:

@@ -13,6 +13,8 @@ error_logger = logging.getLogger("app.error")
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         request_id = str(uuid4())
+        request.state.request_id = request_id
+
         start_time = time.perf_counter()
         client_ip = request.client.host if request.client else "-"
 

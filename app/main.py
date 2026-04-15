@@ -6,7 +6,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.api import api_router
 from app.core.config import settings
-from app.core.database import create_db_and_tables
 from app.core.exceptions.base import AppException
 from app.core.handlers.exception_handlers import (
     app_exception_handler,
@@ -21,7 +20,6 @@ setup_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await create_db_and_tables()
     yield
 
 

@@ -10,6 +10,7 @@ from app.dependencies import (
     get_current_active_user,
     get_current_superuser,
     get_product_service,
+    get_request_id,
 )
 from app.schemas.auth import CurrentUser
 from app.schemas.product import (
@@ -131,6 +132,7 @@ async def create_product(
     service: ProductService = Depends(get_product_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_active_user),
+    request_id: str | None = Depends(get_request_id),
 ):
     new_product = await service.create_product(
         db,
@@ -143,6 +145,7 @@ async def create_product(
         entity="product",
         entity_id=str(new_product.id),
         actor=current_user,
+        request_id=request_id,
         detail=f"Producto creado: {new_product.name}",
     )
 
@@ -170,6 +173,7 @@ async def update_product(
     service: ProductService = Depends(get_product_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_active_user),
+    request_id: str | None = Depends(get_request_id),
 ):
     updated_product = await service.update_product(
         db,
@@ -183,6 +187,7 @@ async def update_product(
         entity="product",
         entity_id=str(updated_product.id),
         actor=current_user,
+        request_id=request_id,
         detail=f"Actualización completa del producto {updated_product.name}",
     )
 
@@ -213,6 +218,7 @@ async def partial_update_product(
     service: ProductService = Depends(get_product_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_active_user),
+    request_id: str | None = Depends(get_request_id),
 ):
     updated_product = await service.update_product(
         db,
@@ -226,6 +232,7 @@ async def partial_update_product(
         entity="product",
         entity_id=str(updated_product.id),
         actor=current_user,
+        request_id=request_id,
         detail=f"Actualización parcial del producto {updated_product.name}",
     )
 
@@ -249,6 +256,7 @@ async def activate_product(
     service: ProductService = Depends(get_product_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
+    request_id: str | None = Depends(get_request_id),
 ):
     product = await service.activate_product(db, product_id=id)
 
@@ -258,6 +266,7 @@ async def activate_product(
         entity="product",
         entity_id=str(product.id),
         actor=current_user,
+        request_id=request_id,
         detail=f"Producto activado: {product.name}",
     )
 
@@ -281,6 +290,7 @@ async def deactivate_product(
     service: ProductService = Depends(get_product_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
+    request_id: str | None = Depends(get_request_id),
 ):
     product = await service.deactivate_product(db, product_id=id)
 
@@ -290,6 +300,7 @@ async def deactivate_product(
         entity="product",
         entity_id=str(product.id),
         actor=current_user,
+        request_id=request_id,
         detail=f"Producto desactivado: {product.name}",
     )
 
@@ -317,6 +328,7 @@ async def delete_product(
     service: ProductService = Depends(get_product_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
+    request_id: str | None = Depends(get_request_id),
 ):
     deleted_product = await service.delete_product(
         db,
@@ -332,6 +344,7 @@ async def delete_product(
         entity="product",
         entity_id=str(deleted_product.id),
         actor=current_user,
+        request_id=request_id,
         detail=f"Producto eliminado {delete_mode}: {deleted_product.name}",
     )
 
@@ -355,6 +368,7 @@ async def restore_product(
     service: ProductService = Depends(get_product_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
+    request_id: str | None = Depends(get_request_id),
 ):
     restored_product = await service.restore_product(
         db,
@@ -367,6 +381,7 @@ async def restore_product(
         entity="product",
         entity_id=str(restored_product.id),
         actor=current_user,
+        request_id=request_id,
         detail=f"Producto restaurado: {restored_product.name}",
     )
 

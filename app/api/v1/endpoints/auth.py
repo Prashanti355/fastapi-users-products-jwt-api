@@ -7,6 +7,7 @@ from app.dependencies import (
     get_audit_log_service,
     get_auth_service,
     get_current_active_user,
+    get_request_id,
 )
 from app.schemas.auth import (
     CurrentUser,
@@ -34,6 +35,7 @@ async def login(
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
+    request_id: str | None = Depends(get_request_id),
 ):
     login_data = LoginRequest(
         username=form_data.username,
@@ -52,6 +54,7 @@ async def login(
         action="login",
         entity="auth",
         actor=current_user,
+        request_id=request_id,
         detail="Inicio de sesión exitoso."
     )
 
@@ -73,6 +76,7 @@ async def register(
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
+    request_id: str | None = Depends(get_request_id),
 ):
     tokens = await auth_service.register(
         db,
@@ -87,6 +91,7 @@ async def register(
         entity="user",
         entity_id=str(current_user.id),
         actor=current_user,
+        request_id=request_id,
         detail="Registro público de usuario exitoso."
     )
 
@@ -112,6 +117,7 @@ async def refresh_token(
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
+    request_id: str | None = Depends(get_request_id),
 ):
     tokens = await auth_service.refresh_token(
         db,
@@ -125,6 +131,7 @@ async def refresh_token(
         action="refresh_token",
         entity="auth",
         actor=current_user,
+        request_id=request_id,
         detail="Renovación de tokens exitosa."
     )
 
