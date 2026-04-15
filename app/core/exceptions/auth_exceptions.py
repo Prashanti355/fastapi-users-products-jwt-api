@@ -2,9 +2,6 @@ from app.core.exceptions.base import AppException
 
 
 class AuthenticationException(AppException):
-    """
-    Error genérico de autenticación.
-    """
     def __init__(self, message: str = "Error de autenticación."):
         super().__init__(
             message=message,
@@ -13,20 +10,14 @@ class AuthenticationException(AppException):
 
 
 class InvalidCredentialsException(AppException):
-    """
-    Credenciales de inicio de sesión inválidas.
-    """
-    def __init__(self):
+    def __init__(self, message: str = "Usuario o contraseña incorrectos."):
         super().__init__(
-            message="Usuario o contraseña incorrectos.",
+            message=message,
             code=401
         )
 
 
 class InvalidTokenException(AppException):
-    """
-    Token JWT inválido, corrupto o expirado.
-    """
     def __init__(self, message: str = "Token inválido o expirado."):
         super().__init__(
             message=message,
@@ -35,20 +26,17 @@ class InvalidTokenException(AppException):
 
 
 class ExpiredTokenException(AppException):
-    """
-    Token JWT expirado.
-    """
-    def __init__(self):
+    def __init__(
+        self,
+        message: str = "El token ha expirado. Por favor, inicie sesión nuevamente.",
+    ):
         super().__init__(
-            message="El token ha expirado. Por favor, inicie sesión nuevamente.",
+            message=message,
             code=401
         )
 
 
 class InsufficientPermissionsException(AppException):
-    """
-    El usuario no tiene permisos suficientes.
-    """
     def __init__(
         self,
         message: str = "No tiene permisos suficientes para realizar esta acción."
@@ -60,20 +48,26 @@ class InsufficientPermissionsException(AppException):
 
 
 class InactiveUserException(AppException):
-    """
-    El usuario está desactivado o eliminado.
-    """
-    def __init__(self):
+    def __init__(self, message: str = "La cuenta de usuario está desactivada."):
         super().__init__(
-            message="La cuenta de usuario está desactivada.",
+            message=message,
             code=403
         )
 
 
+class UserInactiveException(InactiveUserException):
+    pass
+
+
+class UserNotFoundException(AppException):
+    def __init__(self, message: str = "Usuario no encontrado."):
+        super().__init__(
+            message=message,
+            code=404
+        )
+
+
 class TokenRefreshException(AppException):
-    """
-    Error al intentar refrescar el token.
-    """
     def __init__(
         self,
         message: str = "No se pudo refrescar el token."

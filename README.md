@@ -1,14 +1,14 @@
 # FastAPI Users & Products JWT API
 
-API REST construida con FastAPI para gestión de usuarios y productos, autenticación JWT, PostgreSQL, Docker y versionado de esquema con Alembic.
+API REST desarrollada con FastAPI para gestión de usuarios y productos, autenticación JWT, control de acceso por roles, auditoría, migraciones con Alembic y despliegue con Docker.
 
 ## Descripción
 
-Este proyecto implementa una API backend desarrollada con FastAPI siguiendo una arquitectura por capas. Incluye módulos de usuarios, productos y autenticación con JWT, control de acceso por roles, documentación interactiva con Swagger, configuración CORS, logs técnicos, logs de auditoría, migraciones con Alembic y pruebas automatizadas.
+Este proyecto implementa una API backend con arquitectura por capas orientada a crecimiento y mantenimiento. Incluye módulos de usuarios, productos y autenticación, documentación interactiva con Swagger, observabilidad mediante logs técnicos y auditoría persistida en PostgreSQL, además de pruebas automatizadas y control formal del esquema con Alembic.
 
-El desarrollo se realizó de forma incremental. Primero se construyeron los módulos funcionales de usuarios, productos y autenticación. Después se añadieron endurecimientos de seguridad, observabilidad, auditoría, pruebas unitarias e integración, y finalmente se formalizó el control del esquema de base de datos con Alembic para permitir crecimiento y mantenimiento más seguros.
+El desarrollo se realizó de forma incremental: primero la lógica de usuarios y productos, después la autenticación y autorización, luego observabilidad y auditoría, y finalmente la formalización del esquema de base de datos con migraciones reproducibles.
 
-## Características implementadas
+## Características principales
 
 ### Usuarios
 
@@ -18,7 +18,7 @@ El desarrollo se realizó de forma incremental. Primero se construyeron los mód
 - Cambio de contraseña
 - Activación y desactivación
 - Eliminación lógica y restauración
-- Restricción de autoedición de campos privilegiados para usuarios normales
+- Restricción de campos privilegiados para usuarios normales
 - Creación administrativa de usuarios por superusuario
 
 ### Productos
@@ -33,39 +33,39 @@ El desarrollo se realizó de forma incremental. Primero se construyeron los mód
 
 ### Seguridad
 
-- Registro público de usuarios
+- Registro público
 - Login con JWT
 - Access token y refresh token
-- Endpoint `/auth/me`
+- Endpoint `/api/v1/auth/me`
 - Integración con `Authorize` en Swagger
-- Protección de endpoints por niveles:
+- Control de acceso por roles:
   - público
   - usuario autenticado
   - superusuario
 - Endurecimiento del registro público para impedir autoelevación de privilegios
-- Restricción de modificación de campos privilegiados para usuarios normales
 
-### Observabilidad
+### Observabilidad y auditoría
 
-- Configuración CORS con lista explícita de orígenes permitidos
-- Logs técnicos persistidos en archivo
-- Request ID por petición
+- Configuración CORS
+- Logs técnicos en archivo
+- `request_id` por petición
 - Header `X-Request-ID` en respuestas
-- Logs de auditoría persistidos en PostgreSQL
+- Auditoría persistida en PostgreSQL
+- Endpoint protegido `GET /api/v1/audit-logs`
 - Correlación entre logs técnicos y auditoría mediante `request_id`
 
 ### Migraciones
 
-- Versionado formal del esquema con Alembic
-- Migración inicial real para reconstrucción del esquema desde una base vacía
-- Flujo de migraciones reproducible con `revision --autogenerate` y `upgrade head`
+- Esquema versionado con Alembic
+- Migración inicial real para reconstrucción desde base vacía
+- Flujo reproducible con `revision --autogenerate` y `upgrade head`
 
 ### Pruebas
 
-- Pruebas unitarias de seguridad, tokens y servicios
-- Pruebas de integración para auth, users y products
+- Pruebas unitarias
+- Pruebas de integración
 - Ejecución reproducible dentro de Docker
-- Batería automatizada con **98 pruebas aprobadas**
+- **103 pruebas aprobadas**
 
 ## Tecnologías utilizadas
 
@@ -87,14 +87,14 @@ El desarrollo se realizó de forma incremental. Primero se construyeron los mód
 
 ## Arquitectura
 
-El proyecto sigue una arquitectura por capas para separar responsabilidades y facilitar el crecimiento del sistema.
+El proyecto sigue una arquitectura por capas para separar responsabilidades y facilitar la evolución del sistema.
 
 - `api/` → endpoints HTTP
-- `schemas/` → DTOs y validación de datos
+- `schemas/` → validación y DTOs
 - `services/` → lógica de negocio
 - `repositories/` → acceso a datos
 - `models/` → entidades de base de datos
-- `core/` → configuración, seguridad, logging, base de datos, excepciones y handlers
+- `core/` → configuración, seguridad, logging, base de datos y manejo de errores
 
 ## Estructura del proyecto
 
@@ -104,6 +104,7 @@ app/
 │   └── v1/
 │       ├── api.py
 │       └── endpoints/
+│           ├── audit_logs.py
 │           ├── auth.py
 │           ├── products.py
 │           └── users.py
@@ -126,6 +127,7 @@ app/
 │   ├── product_repository.py
 │   └── user_repository.py
 ├── schemas/
+│   ├── audit_log.py
 │   ├── auth.py
 │   ├── common.py
 │   ├── product.py
@@ -150,16 +152,7 @@ docker/
 
 tests/
 ├── integration/
-│   ├── conftest.py
-│   ├── test_auth_endpoints.py
-│   ├── test_products_endpoints.py
-│   └── test_users_endpoints.py
 ├── unit/
-│   ├── test_auth_service.py
-│   ├── test_product_service.py
-│   ├── test_security.py
-│   ├── test_token_service.py
-│   └── test_user_service.py
 ├── test_connection.py
 ├── test_db.py
 └── test_models.py
@@ -173,7 +166,7 @@ requirements-dev.txt
 README.md
 ```
 
-## Módulos disponibles
+## Endpoints principales
 
 ### Auth
 
@@ -207,9 +200,11 @@ README.md
 - `DELETE /api/v1/products/{id}`
 - `PATCH /api/v1/products/{id}/restore`
 
-## Ejecución con Docker
+### Audit Logs
 
-Esta es la forma recomendada para levantar el proyecto.
+- `GET /api/v1/audit-logs`
+
+## Ejecución con Docker
 
 ### 1. Clonar el repositorio
 
@@ -220,13 +215,11 @@ cd fastapi-users-products-jwt-api
 
 ### 2. Crear el archivo `.env`
 
-#### Linux / macOS
-
 ```bash
 cp .env.example .env
 ```
 
-#### Windows PowerShell
+En PowerShell:
 
 ```powershell
 Copy-Item .env.example .env
@@ -240,88 +233,26 @@ docker compose up -d --build
 
 ### 4. Aplicar migraciones
 
-#### Linux / macOS
-
 ```bash
 docker compose exec api alembic upgrade head
 ```
 
-#### Windows PowerShell
-
-```powershell
-docker compose exec api alembic upgrade head
-```
-
-### 5. Verificar contenedores
-
-```bash
-docker compose ps
-```
-
-### 6. Acceder a la aplicación
+### 5. Acceder a la API
 
 - Swagger UI: `http://localhost:8000/docs`
 - Health check: `http://localhost:8000/health`
 
-### 7. Detener contenedores
-
-```bash
-docker compose down
-```
-
 ## Ejecución local
-
-Aunque el flujo recomendado del proyecto es Docker, también se puede ejecutar localmente.
-
-### 1. Crear entorno virtual
 
 ```bash
 python -m venv .venv
-```
-
-### 2. Activar entorno virtual
-
-#### Windows PowerShell
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-#### Windows CMD
-
-```cmd
-.venv\Scripts\activate.bat
-```
-
-### 3. Instalar dependencias
-
-```bash
 pip install -r requirements.txt -r requirements-dev.txt
-```
-
-### 4. Aplicar migraciones
-
-```bash
 alembic upgrade head
-```
-
-### 5. Ejecutar la API
-
-```bash
 python -m uvicorn app.main:app --reload
 ```
 
-## Variables de entorno
+## Variables de entorno principales
 
-El proyecto usa variables de entorno para separar configuración sensible del código y evitar hardcodeo.
-
-Variables principales:
-
-- `PROJECT_NAME`
-- `VERSION`
-- `DEBUG`
-- `ENVIRONMENT`
-- `API_V1_STR`
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
 - `POSTGRES_DB`
@@ -332,69 +263,16 @@ Variables principales:
 - `ALGORITHM`
 - `ACCESS_TOKEN_EXPIRE_MINUTES`
 - `REFRESH_TOKEN_EXPIRE_DAYS`
-- `DEFAULT_PAGE_SIZE`
-- `MAX_PAGE_SIZE`
 - `BACKEND_CORS_ORIGINS`
-
-## Autenticación
-
-La API implementa autenticación basada en JWT con doble token:
-
-- **Access token** para acceso a rutas protegidas
-- **Refresh token** para obtener un nuevo par de tokens
-
-### Flujo básico
-
-1. Registrar usuario en `/api/v1/auth/register`
-2. Iniciar sesión en `/api/v1/auth/login`
-3. Usar el `access_token` para rutas protegidas
-4. Refrescar tokens en `/api/v1/auth/refresh-token`
-5. Validar el usuario actual en `/api/v1/auth/me`
-
-Swagger permite autenticarse mediante el botón **Authorize**.
-
-## Niveles de acceso
-
-### Público
-
-- Lectura de productos
-
-### Usuario autenticado
-
-- Operaciones protegidas de escritura en productos
-- Consulta y actualización del propio usuario
-- Cambio de contraseña
-- Consulta del usuario autenticado actual
-
-### Superusuario
-
-- Listado completo de usuarios
-- Creación administrativa de usuarios
-- Activación, desactivación, eliminación y restauración de usuarios
-- Activación, desactivación, eliminación y restauración de productos
-
-## CORS
-
-La API incluye configuración CORS con lista explícita de orígenes permitidos.
-
-Se validó:
-
-- preflight `OPTIONS`
-- origen permitido
-- origen no permitido
-- soporte para header `Authorization`
-- compatibilidad con rutas públicas y protegidas
 
 ## Logs técnicos
 
-La aplicación registra logs técnicos en archivos persistidos fuera del contenedor.
-
-Archivos generados:
+La aplicación genera:
 
 - `logs/technical.log`
 - `logs/error.log`
 
-Cada request incluye:
+Cada request registra, entre otros datos:
 
 - `request_id`
 - método HTTP
@@ -403,17 +281,9 @@ Cada request incluye:
 - latencia
 - IP cliente
 
-Además, la API devuelve el header:
-
-- `X-Request-ID`
-
 ## Logs de auditoría
 
-La aplicación registra eventos sensibles de negocio en PostgreSQL mediante la tabla:
-
-- `audit_logs`
-
-Eventos auditados actualmente:
+La tabla `audit_logs` registra eventos sensibles como:
 
 - `register`
 - `login`
@@ -434,102 +304,52 @@ Eventos auditados actualmente:
 - `delete_product`
 - `restore_product`
 
-Cada registro de auditoría incluye:
-
-- acción
-- entidad
-- identificador de entidad
-- actor
-- rol del actor
-- `request_id`
-- estado
-- detalle
-- timestamp
+Cada evento conserva acción, entidad, actor, rol, `request_id`, estado, detalle y fecha.
 
 ## Migraciones con Alembic
 
-El esquema de base de datos está versionado con Alembic.
-
-### Flujo de trabajo
-
-1. Modificar modelos en `app/models/`
-2. Generar migración:
+Flujo de trabajo:
 
 ```bash
 alembic revision --autogenerate -m "descripcion del cambio"
-```
-
-3. Revisar manualmente el archivo generado en `alembic/versions/`
-4. Aplicar migración:
-
-```bash
 alembic upgrade head
-```
-
-5. Verificar versión actual:
-
-```bash
 alembic current
 ```
 
-## Pruebas automatizadas
+## Pruebas
 
-El proyecto incluye:
-
-### Scripts base
-
-- `tests/test_models.py`
-- `tests/test_db.py`
-- `tests/test_connection.py`
-
-### Pruebas unitarias
-
-- `tests/unit/test_security.py`
-- `tests/unit/test_token_service.py`
-- `tests/unit/test_auth_service.py`
-- `tests/unit/test_user_service.py`
-- `tests/unit/test_product_service.py`
-
-### Pruebas de integración
-
-- `tests/integration/test_auth_endpoints.py`
-- `tests/integration/test_users_endpoints.py`
-- `tests/integration/test_products_endpoints.py`
-
-### Ejecutar toda la batería
+Ejecutar toda la batería:
 
 ```bash
 docker compose exec api pytest tests/unit tests/integration -q
 ```
 
-Resultado actual:
+Estado actual:
 
-- **98 pruebas aprobadas**
+- **103 pruebas aprobadas**
 
-## Estado actual
+## Estado del proyecto
 
-Hasta este punto, el proyecto ya implementa:
+Actualmente el proyecto incluye:
 
-- módulo de usuarios
-- módulo de productos
+- usuarios
+- productos
 - autenticación y autorización con JWT
 - control de acceso por roles
 - CORS
 - logs técnicos
 - logs de auditoría
+- endpoint de consulta de auditoría
 - migraciones con Alembic
 - documentación interactiva
-- pruebas unitarias
-- pruebas de integración
+- pruebas unitarias e integración
 - despliegue con Docker
 
-## Trabajo siguiente
+## Siguientes pasos
 
-Las siguientes etapas del proyecto contemplan:
-
-- CI para ejecución automática de pruebas
+- automatizar migraciones al iniciar el contenedor
+- CI para pruebas automáticas
 - cobertura de pruebas
-- documentación adicional de endpoints y arquitectura
 - endurecimiento adicional de seguridad
 - ampliación de módulos de negocio
 
@@ -537,4 +357,4 @@ Las siguientes etapas del proyecto contemplan:
 
 Prashanti Peña Guevara
 
-Proyecto desarrollado como práctica progresiva de backend orientada a construir una API escalable, mantenible y cercana a un entorno real.
+Proyecto de práctica backend orientado a construir una API escalable y mantenible.
