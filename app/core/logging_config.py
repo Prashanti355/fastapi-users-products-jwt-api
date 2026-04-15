@@ -1,9 +1,10 @@
 from pathlib import Path
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 
 
-LOG_DIR = Path("/home/python/logs")
+LOG_DIR = Path(os.getenv("LOG_DIR", "logs"))
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 
