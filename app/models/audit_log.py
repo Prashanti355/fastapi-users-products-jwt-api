@@ -45,6 +45,11 @@ class AuditLog(SQLModel, table=True):
         sa_column=Column(String(100), nullable=True)
     )
 
+    request_id: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(100), nullable=True, index=True)
+    )
+
     status: str = Field(
         default="success",
         sa_column=Column(String(30), nullable=False, index=True)

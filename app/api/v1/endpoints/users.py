@@ -10,6 +10,7 @@ from app.dependencies import (
     get_audit_log_service,
     get_current_active_user,
     get_current_superuser,
+    get_request_id,
     get_user_service,
 )
 from app.schemas.auth import CurrentUser
@@ -117,6 +118,7 @@ async def create_user(
     user_service: UserService = Depends(get_user_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
+    request_id: str | None = Depends(get_request_id),
 ):
     user = await user_service.create_user(db, user_in=user_in)
 
@@ -126,6 +128,7 @@ async def create_user(
         entity="user",
         entity_id=str(user.id),
         actor=current_user,
+        request_id=request_id,
         detail=f"Usuario creado por superusuario: {user.username}",
     )
 
@@ -149,6 +152,7 @@ async def update_user(
     user_service: UserService = Depends(get_user_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_active_user),
+    request_id: str | None = Depends(get_request_id),
 ):
     _ensure_self_or_superuser(
         current_user,
@@ -169,6 +173,7 @@ async def update_user(
         entity="user",
         entity_id=str(user.id),
         actor=current_user,
+        request_id=request_id,
         detail=f"Actualización completa del usuario {user.username}",
     )
 
@@ -192,6 +197,7 @@ async def partial_update_user(
     user_service: UserService = Depends(get_user_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_active_user),
+    request_id: str | None = Depends(get_request_id),
 ):
     _ensure_self_or_superuser(
         current_user,
@@ -212,6 +218,7 @@ async def partial_update_user(
         entity="user",
         entity_id=str(user.id),
         actor=current_user,
+        request_id=request_id,
         detail=f"Actualización parcial del usuario {user.username}",
     )
 
@@ -235,6 +242,7 @@ async def change_password(
     user_service: UserService = Depends(get_user_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_active_user),
+    request_id: str | None = Depends(get_request_id),
 ):
     if current_user.id != user_id:
         raise InsufficientPermissionsException(
@@ -253,6 +261,7 @@ async def change_password(
         entity="user",
         entity_id=str(user_id),
         actor=current_user,
+        request_id=request_id,
         detail="Cambio de contraseña exitoso.",
     )
 
@@ -275,6 +284,7 @@ async def activate_user(
     user_service: UserService = Depends(get_user_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
+    request_id: str | None = Depends(get_request_id),
 ):
     user = await user_service.activate_user(db, user_id=user_id)
 
@@ -284,6 +294,7 @@ async def activate_user(
         entity="user",
         entity_id=str(user.id),
         actor=current_user,
+        request_id=request_id,
         detail=f"Usuario activado: {user.username}",
     )
 
@@ -310,6 +321,7 @@ async def deactivate_user(
     user_service: UserService = Depends(get_user_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
+    request_id: str | None = Depends(get_request_id),
 ):
     user = await user_service.deactivate_user(
         db,
@@ -322,6 +334,7 @@ async def deactivate_user(
         entity="user",
         entity_id=str(user.id),
         actor=current_user,
+        request_id=request_id,
         detail=f"Usuario desactivado: {user.username}",
     )
 
@@ -348,6 +361,7 @@ async def delete_user(
     user_service: UserService = Depends(get_user_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
+    request_id: str | None = Depends(get_request_id),
 ):
     user = await user_service.delete_user(
         db,
@@ -361,6 +375,7 @@ async def delete_user(
         entity="user",
         entity_id=str(user.id),
         actor=current_user,
+        request_id=request_id,
         detail=f"Usuario eliminado lógicamente: {user.username}",
     )
 
@@ -387,6 +402,7 @@ async def restore_user(
     user_service: UserService = Depends(get_user_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
+    request_id: str | None = Depends(get_request_id),
 ):
     user = await user_service.restore_user(db, user_id=user_id)
 
@@ -396,6 +412,7 @@ async def restore_user(
         entity="user",
         entity_id=str(user.id),
         actor=current_user,
+        request_id=request_id,
         detail=f"Usuario restaurado: {user.username}",
     )
 

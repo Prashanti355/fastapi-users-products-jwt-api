@@ -18,6 +18,7 @@ class AuditLogService:
         entity: str,
         entity_id: Optional[str] = None,
         actor: Optional[CurrentUser] = None,
+        request_id: Optional[str] = None,
         status: str = "success",
         detail: Optional[str] = None,
     ):
@@ -28,6 +29,7 @@ class AuditLogService:
             "actor_id": str(actor.id) if actor else None,
             "actor_username": actor.username if actor else None,
             "actor_role": actor.role if actor else None,
+            "request_id": request_id,
             "status": status,
             "detail": detail,
         }
