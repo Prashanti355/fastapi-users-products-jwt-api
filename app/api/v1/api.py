@@ -1,26 +1,29 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, products, users
 
-# Router principal de la versión 1 de la API
+from app.api.v1.endpoints import audit_logs, auth, products, users
+
 api_router = APIRouter()
 
-# Módulo de autenticación
 api_router.include_router(
     auth.router,
     prefix="/auth",
-    tags=["auth"]
+    tags=["Auth"],
 )
 
-# Módulo de usuarios
 api_router.include_router(
     users.router,
     prefix="/users",
-    tags=["users"]
+    tags=["Users"],
 )
 
-# Módulo de productos
 api_router.include_router(
     products.router,
     prefix="/products",
-    tags=["products"]
+    tags=["Products"],
+)
+
+api_router.include_router(
+    audit_logs.router,
+    prefix="/audit-logs",
+    tags=["Audit Logs"],
 )
