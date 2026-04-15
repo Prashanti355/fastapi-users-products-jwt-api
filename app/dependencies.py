@@ -6,11 +6,13 @@ from app.core.database import get_db
 from app.core.exceptions.auth_exceptions import InsufficientPermissionsException
 from app.repositories.audit_log_repository import AuditLogRepository
 from app.repositories.product_repository import ProductRepository
+from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import CurrentUser
 from app.services.audit_log_service import AuditLogService
 from app.services.auth_service import AuthService
 from app.services.product_service import ProductService
+from app.services.refresh_token_service import RefreshTokenService
 from app.services.token_service import TokenService
 from app.services.user_service import UserService
 
@@ -28,6 +30,10 @@ async def get_product_repository() -> ProductRepository:
 
 async def get_audit_log_repository() -> AuditLogRepository:
     return AuditLogRepository()
+
+
+async def get_refresh_token_repository() -> RefreshTokenRepository:
+    return RefreshTokenRepository()
 
 
 async def get_token_service() -> TokenService:
@@ -50,6 +56,12 @@ async def get_audit_log_service(
     repository: AuditLogRepository = Depends(get_audit_log_repository),
 ) -> AuditLogService:
     return AuditLogService(repository)
+
+
+async def get_refresh_token_service(
+    repository: RefreshTokenRepository = Depends(get_refresh_token_repository),
+) -> RefreshTokenService:
+    return RefreshTokenService(repository)
 
 
 async def get_auth_service(
