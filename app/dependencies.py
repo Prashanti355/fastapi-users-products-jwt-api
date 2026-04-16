@@ -15,6 +15,8 @@ from app.services.product_service import ProductService
 from app.services.refresh_token_service import RefreshTokenService
 from app.services.token_service import TokenService
 from app.services.user_service import UserService
+from app.repositories.refresh_token_repository import RefreshTokenRepository
+from app.services.refresh_token_service import RefreshTokenService
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -67,8 +69,9 @@ async def get_refresh_token_service(
 async def get_auth_service(
     user_repository: UserRepository = Depends(get_user_repository),
     token_service: TokenService = Depends(get_token_service),
+    refresh_token_service: RefreshTokenService = Depends(get_refresh_token_service),
 ) -> AuthService:
-    return AuthService(user_repository, token_service)
+    return AuthService(user_repository, token_service, refresh_token_service)
 
 
 async def get_current_active_user(
@@ -91,3 +94,12 @@ async def get_current_superuser(
 
 def get_request_id(request: Request) -> str | None:
     return getattr(request.state, "request_id", None)
+
+async def get_refresh_token_repository() -> RefreshTokenRepository:
+    return RefreshTokenRepository()
+
+
+async def get_refresh_token_service(
+    repository: RefreshTokenRepository = Depends(get_refresh_token_repository),
+) -> RefreshTokenService:
+    return RefreshTokenService(repository)
