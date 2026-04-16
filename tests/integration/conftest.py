@@ -30,6 +30,23 @@ async def async_client() -> AsyncClient:
     ) as client:
         yield client
 
+@pytest.fixture(autouse=True)
+def reset_rate_limiter_state():
+    yield
+
+    limiter = getattr(app.state, "limiter", None)
+    if limiter is None:
+        return
+
+    storage = getattr(limiter, "_storage", None)
+    if storage is None:
+        return
+
+    try:
+        storage.reset()
+    except Exception:
+        pass        
+
 
 @pytest.fixture
 def unique_suffix() -> str:
@@ -101,47 +118,64 @@ def build_product_payload():
     return _build
 
 
-@pytest_asyncio.fixture
-async def register_public_user(async_client: AsyncClient, build_public_register_payload):
-    """
-    Helper para registrar usuarios públicos.
-    Devuelve response, payload usado y suffix.
-    """
-    async def _register(**overrides: Any):
-        suffix = overrides.pop("suffix", uuid4().hex[:8])
-        payload = build_public_register_payload(suffix, **overrides)
+@pytest.fixture
+def register_public_user(async_client):
+    async def _register(
+        headers: dict[str, str] | None = None,
+        **overrides,
+    ):
+        unique_suffix = uuid4().hex[:8]
+
+        payload = {
+            "first_name": "Maya",
+            "last_name": f"Test{unique_suffix}",
+            "username": f"user_{unique_suffix}",
+            "email": f"user_{unique_suffix}@example.com",
+            "password": "Clave1234",
+            "gender": "Female",
+            "nationality": "MX",
+            "occupation": "Tester",
+            "date_of_birth": "1995-01-01",
+            "contact_phone_number": "5511111111",
+            "address": "Calle Prueba",
+            "address_number": "10",
+            "address_neighborhood": "Centro",
+            "address_zip_code": "01000",
+            "address_city": "CDMX",
+            "address_state": "CDMX",
+        }
+
+        payload.update(overrides)
 
         response = await async_client.post(
             "/api/v1/auth/register",
-            json=payload
+            json=payload,
+            headers=_build_test_rate_limit_headers(headers),
         )
 
         return {
             "response": response,
             "payload": payload,
-            "suffix": suffix,
         }
 
     return _register
 
 
-@pytest_asyncio.fixture
-async def login_user(async_client: AsyncClient):
-    """
-    Helper para login vía OAuth2 form.
-    """
-    async def _login(username: str, password: str = "Clave1234"):
-        response = await async_client.post(
+@pytest.fixture
+def login_user(async_client):
+    async def _login(
+        username: str,
+        password: str,
+        headers: dict[str, str] | None = None,
+    ):
+        return await async_client.post(
             "/api/v1/auth/login",
             data={
                 "username": username,
                 "password": password,
             },
-            headers={
-                "Content-Type": "application/x-www-form-urlencoded"
-            }
+            headers=_build_test_rate_limit_headers(headers),
         )
-        return response
 
     return _login
 
@@ -238,3 +272,12 @@ async def promote_user_to_superuser():
             await session.commit()
 
     return _promote
+
+def _build_test_rate_limit_headers(
+    headers: dict[str, str] | None = None,
+) -> dict[str, str]:
+    merged = dict(headers or {})
+    merged.setdefault("X-Test-RateLimit-Key", uuid4().hex)
+    return merged
+
+
