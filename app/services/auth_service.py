@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,13 +15,16 @@ from app.core.exceptions.user_exceptions import (
 from app.core.security import get_password_hash, verify_password
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
+from app.services.refresh_token_service import RefreshTokenService
 from app.services.token_service import TokenService
+
 from app.schemas.auth import (
     CurrentUser,
     LoginRequest,
     PublicRegisterRequest,
     TokenResponse,
 )
+
 
 class AuthService:
     """
@@ -35,9 +37,35 @@ class AuthService:
         self,
         user_repository: UserRepository,
         token_service: TokenService,
+        refresh_token_service: RefreshTokenService | None = None,
     ):
         self.user_repo = user_repository
         self.token_service = token_service
+        self.refresh_token_service = refresh_token_service
+
+    async def _store_refresh_token_if_enabled(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: UUID,
+        refresh_token: str,
+    ) -> None:
+        """
+        Persiste el refresh token emitido si el servicio de refresh tokens
+        está disponible. No altera el flujo existente cuando no está inyectado.
+        """
+        if self.refresh_token_service is None:
+            return
+
+        token_data = self.token_service.verify_refresh_token(refresh_token)
+        expires_at = datetime.fromtimestamp(token_data.exp, tz=timezone.utc)
+
+        await self.refresh_token_service.register_token(
+            db,
+            jti=token_data.jti,
+            user_id=user_id,
+            expires_at=expires_at,
+        )
 
     async def login(
         self,
@@ -68,7 +96,15 @@ class AuthService:
         await db.commit()
         await db.refresh(user)
 
-        return self.token_service.generate_tokens(user)
+        tokens = self.token_service.generate_tokens(user)
+
+        await self._store_refresh_token_if_enabled(
+            db,
+            user_id=user.id,
+            refresh_token=tokens.refresh_token,
+        )
+
+        return tokens
 
     async def register(
         self,
@@ -129,7 +165,15 @@ class AuthService:
         await db.commit()
         await db.refresh(db_user)
 
-        return self.token_service.generate_tokens(db_user)
+        tokens = self.token_service.generate_tokens(db_user)
+
+        await self._store_refresh_token_if_enabled(
+            db,
+            user_id=db_user.id,
+            refresh_token=tokens.refresh_token,
+        )
+
+        return tokens
 
     async def refresh_token(
         self,
@@ -139,8 +183,20 @@ class AuthService:
     ) -> TokenResponse:
         """
         Genera un nuevo par de tokens usando un refresh token válido.
+        Si el servicio de refresh tokens está disponible, valida el token
+        en base de datos, revoca el anterior por rotación y registra el nuevo.
         """
         token_data = self.token_service.verify_refresh_token(refresh_token)
+
+        if self.refresh_token_service is not None:
+            is_active = await self.refresh_token_service.is_token_active(
+                db,
+                jti=token_data.jti,
+            )
+            if not is_active:
+                raise TokenRefreshException(
+                    message="El refresh token fue revocado, expiró o no existe."
+                )
 
         user = await self.user_repo.get(
             db,
@@ -155,7 +211,22 @@ class AuthService:
         if not user.is_active or user.is_deleted:
             raise InactiveUserException()
 
-        return self.token_service.generate_tokens(user)
+        if self.refresh_token_service is not None:
+            await self.refresh_token_service.revoke_token(
+                db,
+                jti=token_data.jti,
+                revoke_reason="rotated",
+            )
+
+        tokens = self.token_service.generate_tokens(user)
+
+        await self._store_refresh_token_if_enabled(
+            db,
+            user_id=user.id,
+            refresh_token=tokens.refresh_token,
+        )
+
+        return tokens
 
     async def get_current_user(
         self,
@@ -189,3 +260,55 @@ class AuthService:
             is_superuser=user.is_superuser,
             is_active=user.is_active,
         )
+    async def logout(
+        self,
+        db: AsyncSession,
+        *,
+        refresh_token: str
+    ) -> None:
+        """
+        Revoca un refresh token válido. La operación es idempotente:
+        si el token ya estaba revocado o no existe en la tabla, no falla.
+        """
+        token_data = self.token_service.verify_refresh_token(refresh_token)
+
+        if self.refresh_token_service is None:
+            return
+
+        stored_token = await self.refresh_token_service.get_by_jti(
+            db,
+            jti=token_data.jti,
+        )
+
+        if stored_token is None:
+            return
+
+        if stored_token.revoked_at is not None:
+            return
+
+        await self.refresh_token_service.revoke_token(
+            db,
+            jti=token_data.jti,
+            revoke_reason="logout",
+        )    
+
+    async def logout_all(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: UUID
+    ) -> int:
+        """
+        Revoca todos los refresh tokens activos del usuario.
+        Retorna cuántos tokens fueron revocados.
+        """
+        if self.refresh_token_service is None:
+            return 0
+
+        revoked_tokens = await self.refresh_token_service.revoke_all_user_tokens(
+            db,
+            user_id=user_id,
+            revoke_reason="logout_all",
+        )
+
+        return len(revoked_tokens)        

@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Body, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,7 +10,10 @@ from app.dependencies import (
     get_auth_service,
     get_current_active_user,
     get_request_id,
+    get_token_service,
+    get_user_repository,
 )
+from app.repositories.user_repository import UserRepository
 from app.schemas.auth import (
     CurrentUser,
     LoginRequest,
@@ -16,9 +21,11 @@ from app.schemas.auth import (
     RefreshTokenRequest,
     TokenResponse,
 )
-from app.schemas.response import ApiResponse
+from app.schemas.response import ApiResponse, ApiResponseSimple
 from app.services.audit_log_service import AuditLogService
 from app.services.auth_service import AuthService
+from app.services.token_service import TokenService
+
 
 router = APIRouter()
 
@@ -156,4 +163,93 @@ async def me(
         codigo=200,
         mensaje="Usuario autenticado obtenido exitosamente.",
         resultado=current_user
+    )
+
+
+@router.post(
+    "/logout",
+    response_model=ApiResponseSimple,
+    status_code=status.HTTP_200_OK,
+    summary="Cerrar sesión",
+    description="Revoca el refresh token proporcionado por el cliente.",
+)
+async def logout(
+    refresh_data: RefreshTokenRequest,
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
+    token_service: TokenService = Depends(get_token_service),
+    user_repository: UserRepository = Depends(get_user_repository),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
+    request_id: str | None = Depends(get_request_id),
+):
+    token_data = token_service.verify_refresh_token(refresh_data.refresh_token)
+
+    user = await user_repository.get(
+        db,
+        id=UUID(token_data.sub),
+    )
+
+    await auth_service.logout(
+        db,
+        refresh_token=refresh_data.refresh_token,
+    )
+
+    if user is not None:
+        current_user = CurrentUser(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            role=user.role,
+            is_superuser=user.is_superuser,
+            is_active=user.is_active,
+        )
+
+        await audit_log_service.log_event(
+            db,
+            action="logout",
+            entity="auth",
+            actor=current_user,
+            request_id=request_id,
+            detail="Cierre de sesión exitoso."
+        )
+
+    return ApiResponseSimple(
+        codigo=200,
+        mensaje="Sesión cerrada exitosamente.",
+        resultado={},
+    )
+
+
+@router.post(
+    "/logout-all",
+    response_model=ApiResponseSimple,
+    status_code=status.HTTP_200_OK,
+    summary="Cerrar todas las sesiones",
+    description="Revoca todos los refresh tokens activos del usuario autenticado.",
+)
+async def logout_all(
+    current_user: CurrentUser = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
+    request_id: str | None = Depends(get_request_id),
+):
+    revoked_count = await auth_service.logout_all(
+        db,
+        user_id=current_user.id,
+    )
+
+    await audit_log_service.log_event(
+        db,
+        action="logout_all",
+        entity="auth",
+        actor=current_user,
+        request_id=request_id,
+        detail=f"Cierre de todas las sesiones exitoso. Tokens revocados: {revoked_count}."
+    )
+
+    return ApiResponseSimple(
+        codigo=200,
+        mensaje="Todas las sesiones fueron cerradas exitosamente.",
+        resultado={"revoked_tokens": revoked_count},
     )
