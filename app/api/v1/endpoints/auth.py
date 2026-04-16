@@ -1,10 +1,13 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, status
+from fastapi import APIRouter, Body, Depends, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
+
+from app.core.config import settings
 from app.core.database import get_db
+from app.core.rate_limit import limiter
 from app.dependencies import (
     get_audit_log_service,
     get_auth_service,
@@ -37,7 +40,10 @@ router = APIRouter()
     summary="Iniciar sesión",
     description="Autentica al usuario y devuelve un access token y un refresh token."
 )
+@limiter.limit(settings.RATE_LIMIT_LOGIN)
 async def login(
+    request: Request,
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
@@ -75,7 +81,10 @@ async def login(
     summary="Registrar usuario",
     description="Crea un nuevo usuario y devuelve tokens JWT inmediatamente."
 )
+@limiter.limit(settings.RATE_LIMIT_REGISTER)
 async def register(
+    request: Request,
+    response: Response,
     user_data: PublicRegisterRequest = Body(
         ...,
         description="Datos públicos del nuevo usuario"

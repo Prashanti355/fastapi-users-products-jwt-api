@@ -1,5 +1,6 @@
 import pytest
-
+from uuid import uuid4
+import asyncio
 
 @pytest.mark.asyncio
 async def test_register_success(async_client, register_public_user):
@@ -364,3 +365,74 @@ async def test_logout_all_revokes_all_refresh_tokens_for_current_user(
         json={"refresh_token": second_tokens["refresh_token"]},
     )
     assert second_refresh_after_logout_all.status_code == 401    
+
+@pytest.mark.asyncio
+async def test_login_rate_limit_eventually_returns_429(
+    async_client,
+    register_public_user,
+):
+    registration = await register_public_user()
+    payload = registration["payload"]
+
+    rate_limited_response = None
+    headers = {"X-Test-RateLimit-Key": f"login-rl-{uuid4().hex}"}
+
+    for _ in range(250):
+        response = await async_client.post(
+            "/api/v1/auth/login",
+            data={
+                "username": payload["username"],
+                "password": "ClaveIncorrecta123",
+            },
+            headers=headers,
+        )
+
+        if response.status_code == 429:
+            rate_limited_response = response
+            break
+
+        assert response.status_code == 401
+
+    assert rate_limited_response is not None
+    assert rate_limited_response.status_code == 429
+
+
+@pytest.mark.asyncio
+async def test_register_rate_limit_eventually_returns_429(async_client):
+    headers = {"X-Test-RateLimit-Key": f"register-rl-{uuid4().hex}"}
+    test_suffix = uuid4().hex[:8]
+
+    async def send_register(idx: int):
+        payload = {
+            "username": f"user_rl_{test_suffix}_{idx}",
+            "email": f"user_rl_{test_suffix}_{idx}@example.com",
+            "password": "Clave1234",
+            "first_name": "Maya",
+            "last_name": f"TestRL{idx}",
+            "gender": "Female",
+            "nationality": "MX",
+            "occupation": "Tester",
+            "date_of_birth": "1995-01-01",
+            "contact_phone_number": "5511111111",
+            "address": "Calle Prueba",
+            "address_number": "10",
+            "address_neighborhood": "Centro",
+            "address_zip_code": "01000",
+            "address_city": "CDMX",
+            "address_state": "CDMX",
+        }
+
+        return await async_client.post(
+            "/api/v1/auth/register",
+            json=payload,
+            headers=headers,
+        )
+
+    responses = await asyncio.gather(
+        *(send_register(idx) for idx in range(130))
+    )
+
+    status_codes = [response.status_code for response in responses]
+
+    assert 429 in status_codes
+    assert all(code in {201, 429} for code in status_codes)
