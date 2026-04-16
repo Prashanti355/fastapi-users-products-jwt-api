@@ -33,6 +33,14 @@ class Settings(BaseSettings):
 
     BACKEND_CORS_ORIGINS: list[str] = []
 
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_STORAGE_URI: str = "memory://"
+    RATE_LIMIT_HEADERS_ENABLED: bool = True
+    RATE_LIMIT_DEFAULTS: list[str] = []
+    RATE_LIMIT_LOGIN: str = "200/minute"
+    RATE_LIMIT_REGISTER: str = "100/minute"
+    
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,
@@ -66,6 +74,19 @@ class Settings(BaseSettings):
                 f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
             )
         return self
+    
+    @field_validator("RATE_LIMIT_DEFAULTS", mode="before")
+    @classmethod
+    def parse_rate_limit_defaults(cls, value):
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                return []
+            if value.startswith("["):
+                return json.loads(value)
+            return [item.strip() for item in value.split(",") if item.strip()]
+        return value    
+
 
 
 settings = Settings()
