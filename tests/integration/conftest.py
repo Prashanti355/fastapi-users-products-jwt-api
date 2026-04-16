@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 import pytest_asyncio
+from sqlalchemy.orm import sessionmaker
 from httpx import ASGITransport, AsyncClient
 
 from sqlalchemy import text
@@ -280,4 +281,14 @@ def _build_test_rate_limit_headers(
     merged.setdefault("X-Test-RateLimit-Key", uuid4().hex)
     return merged
 
+@pytest.fixture
+async def db_session():
+    async_session = sessionmaker(
+        engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
 
+    async with async_session() as session:
+        yield session
+        await session.rollback()

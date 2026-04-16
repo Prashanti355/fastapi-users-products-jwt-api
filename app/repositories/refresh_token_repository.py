@@ -7,6 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.refresh_token import RefreshToken
 
+from datetime import datetime, timedelta, timezone
+
+from sqlalchemy import delete, or_
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.refresh_token import RefreshToken
 
 class RefreshTokenRepository:
     async def create(
@@ -79,3 +85,37 @@ class RefreshTokenRepository:
             await db.refresh(token)
 
         return list(tokens)
+
+    async def delete_expired_or_old_revoked(
+        self,
+        db: AsyncSession,
+        *,
+        revoked_older_than_days: int = 7,
+    ) -> int:
+        """
+        Elimina:
+        - refresh tokens expirados
+        - refresh tokens revocados hace más de N días
+
+        Retorna el número de filas eliminadas.
+        """
+        now = datetime.now(timezone.utc)
+        revoked_cutoff = now - timedelta(days=revoked_older_than_days)
+
+        statement = (
+            delete(RefreshToken)
+            .where(
+                or_(
+                    RefreshToken.expires_at < now,
+                    (
+                        (RefreshToken.revoked_at.is_not(None))
+                        & (RefreshToken.revoked_at < revoked_cutoff)
+                    ),
+                )
+            )
+        )
+
+        result = await db.execute(statement)
+        await db.commit()
+
+        return result.rowcount or 0    

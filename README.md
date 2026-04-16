@@ -1,12 +1,12 @@
 # FastAPI Users & Products JWT API
 
-API REST desarrollada con FastAPI para gestión de usuarios y productos, autenticación JWT, control de acceso por roles, auditoría, manejo de sesiones con refresh tokens, rate limiting, migraciones con Alembic, CI con GitHub Actions y despliegue con Docker.
+API REST desarrollada con FastAPI para gestión de usuarios y productos, autenticación JWT, control de acceso por roles, auditoría, manejo de sesiones con refresh tokens, rate limiting, limpieza manual de tokens, migraciones con Alembic, CI con GitHub Actions y despliegue con Docker.
 
 ## Descripción
 
 Este proyecto implementa una API backend con arquitectura por capas, pensada para crecimiento, mantenimiento y validación continua. Incluye módulos de usuarios, productos y autenticación, documentación interactiva con Swagger, observabilidad mediante logs técnicos, auditoría persistida en PostgreSQL, migraciones reproducibles con Alembic, pruebas automatizadas y control de sesiones del lado del servidor mediante refresh tokens persistidos, rotados y revocables.
 
-El desarrollo se realizó de forma incremental: primero la lógica de usuarios y productos, después autenticación y autorización, luego observabilidad y auditoría, más tarde la formalización del esquema con Alembic y CI, y finalmente el endurecimiento del flujo de sesión con rotación y revocación de refresh tokens, cierre global de sesiones y rate limiting en endpoints sensibles.
+El desarrollo se realizó de forma incremental: primero la lógica de usuarios y productos, después autenticación y autorización, luego observabilidad y auditoría, más tarde la formalización del esquema con Alembic y CI, y finalmente el endurecimiento del flujo de sesión con rotación y revocación de refresh tokens, cierre global de sesiones, rate limiting en endpoints sensibles y limpieza manual de tokens obsoletos.
 
 ## Características principales
 
@@ -54,6 +54,7 @@ El desarrollo se realizó de forma incremental: primero la lógica de usuarios y
 - Endpoint `/api/v1/auth/logout-all`
 - Invalidación de refresh tokens revocados
 - Cierre de todas las sesiones activas del usuario autenticado
+- Limpieza manual de tokens expirados o revocados antiguos mediante script
 
 ### Protección contra abuso
 
@@ -120,6 +121,7 @@ El proyecto sigue una arquitectura por capas para separar responsabilidades y fa
 - `repositories/` → acceso a datos
 - `models/` → entidades de base de datos
 - `core/` → configuración, seguridad, logging, base de datos, manejo de errores y rate limiting
+- `scripts/` → comandos manuales de mantenimiento
 
 ## Estructura del proyecto
 
@@ -161,6 +163,9 @@ app/
 │   ├── product.py
 │   ├── response.py
 │   └── user.py
+├── scripts/
+│   ├── __init__.py
+│   └── cleanup_refresh_tokens.py
 ├── services/
 │   ├── audit_log_service.py
 │   ├── auth_service.py
@@ -357,6 +362,27 @@ alembic upgrade head
 alembic current
 ```
 
+## Limpieza manual de refresh tokens
+
+El proyecto incluye un script para borrar refresh tokens expirados o revocados antiguos.
+
+Ejecución básica:
+
+```bash
+docker compose exec api python -m app.scripts.cleanup_refresh_tokens
+```
+
+Con antigüedad personalizada para tokens revocados:
+
+```bash
+docker compose exec api python -m app.scripts.cleanup_refresh_tokens --revoked-older-than-days 15
+```
+
+El script elimina:
+
+* refresh tokens expirados
+* refresh tokens revocados hace más de `N` días
+
 ## Pruebas
 
 Ejecutar toda la batería:
@@ -377,6 +403,7 @@ El proyecto incluye un workflow de GitHub Actions para:
 * levantar PostgreSQL en CI
 * ejecutar migraciones con Alembic
 * correr pruebas unitarias e integración
+* reducir corridas duplicadas con control de concurrencia
 
 ## Estado del proyecto
 
@@ -389,6 +416,7 @@ Actualmente el proyecto incluye:
 * gestión de sesiones con refresh tokens persistidos, rotados y revocables
 * logout y logout-all
 * rate limiting en login y register
+* limpieza manual de refresh tokens expirados o revocados antiguos
 * CORS
 * logs técnicos
 * logs de auditoría
@@ -401,8 +429,8 @@ Actualmente el proyecto incluye:
 
 ## Siguientes pasos
 
-* limpieza de refresh tokens expirados o revocados antiguos
 * cobertura de pruebas
+* recuperación de contraseña
 * ampliación de módulos de negocio
 * endurecimiento adicional de seguridad sobre autenticación y abuso
 
@@ -411,4 +439,5 @@ Actualmente el proyecto incluye:
 Prashanti Peña Guevara
 
 Proyecto backend orientado a construir una API escalable, mantenible y más cercana a un entorno real de desarrollo.
+
 
