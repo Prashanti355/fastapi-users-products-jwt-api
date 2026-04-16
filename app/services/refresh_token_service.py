@@ -89,3 +89,14 @@ class RefreshTokenService:
             revoked_at=datetime.now(timezone.utc),
             revoke_reason=revoke_reason,
         )
+    
+    async def delete_expired_or_old_revoked(
+        self,
+        db,
+        *,
+        revoked_older_than_days: int = 7,
+    ) -> int:
+        return await self.repository.delete_expired_or_old_revoked(
+            db,
+            revoked_older_than_days=revoked_older_than_days,
+        )    
