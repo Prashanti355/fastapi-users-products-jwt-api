@@ -23,6 +23,8 @@ from app.schemas.auth import (
     PublicRegisterRequest,
     RefreshTokenRequest,
     TokenResponse,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
 )
 from app.schemas.response import ApiResponse, ApiResponseSimple
 from app.services.audit_log_service import AuditLogService
@@ -155,6 +157,105 @@ async def refresh_token(
         codigo=200,
         mensaje="Tokens renovados correctamente.",
         resultado=tokens
+    )
+
+
+@router.post(
+    "/forgot-password",
+    response_model=ApiResponseSimple,
+    status_code=status.HTTP_200_OK,
+    summary="Solicitar recuperación de contraseña",
+    description=(
+        "Si el correo existe, genera un token de recuperación. "
+        "La respuesta es neutra para no exponer si el correo está registrado."
+    ),
+)
+async def forgot_password(
+    forgot_data: ForgotPasswordRequest = Body(
+        ...,
+        description="Correo del usuario",
+    ),
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
+    request_id: str | None = Depends(get_request_id),
+):
+    user = await auth_service.forgot_password(
+        db,
+        email=forgot_data.email,
+    )
+
+    if user is not None:
+        actor = CurrentUser(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            role=user.role,
+            is_superuser=user.is_superuser,
+            is_active=user.is_active,
+        )
+
+        await audit_log_service.log_event(
+            db,
+            action="forgot_password",
+            entity="auth",
+            actor=actor,
+            request_id=request_id,
+            detail="Solicitud de recuperación de contraseña generada.",
+        )
+
+    return ApiResponseSimple(
+        codigo=200,
+        mensaje="Si el correo existe, se generó un enlace de recuperación.",
+        resultado={},
+    )
+
+
+@router.post(
+    "/reset-password",
+    response_model=ApiResponseSimple,
+    status_code=status.HTTP_200_OK,
+    summary="Restablecer contraseña",
+    description="Valida el token de recuperación y actualiza la contraseña.",
+)
+async def reset_password(
+    reset_data: ResetPasswordRequest = Body(
+        ...,
+        description="Token de recuperación y nueva contraseña",
+    ),
+    db: AsyncSession = Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
+    audit_log_service: AuditLogService = Depends(get_audit_log_service),
+    request_id: str | None = Depends(get_request_id),
+):
+    user = await auth_service.reset_password(
+        db,
+        token=reset_data.token,
+        new_password=reset_data.new_password,
+    )
+
+    actor = CurrentUser(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        role=user.role,
+        is_superuser=user.is_superuser,
+        is_active=user.is_active,
+    )
+
+    await audit_log_service.log_event(
+        db,
+        action="reset_password",
+        entity="auth",
+        actor=actor,
+        request_id=request_id,
+        detail="Restablecimiento de contraseña exitoso.",
+    )
+
+    return ApiResponseSimple(
+        codigo=200,
+        mensaje="Contraseña restablecida correctamente.",
+        resultado={},
     )
 
 

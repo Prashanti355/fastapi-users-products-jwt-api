@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional
 from uuid import UUID
-
+from pydantic import BaseModel, EmailStr, Field
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, field_validator
 
 from app.schemas.user import Gender
@@ -121,3 +121,11 @@ class CurrentUser(BaseModel):
     is_active: bool = True
 
     model_config = ConfigDict(from_attributes=True)
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=20, max_length=255)
+    new_password: str = Field(min_length=8, max_length=128)

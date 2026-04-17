@@ -25,6 +25,8 @@ from app.schemas.auth import (
     TokenResponse,
 )
 
+from app.services.password_reset_token_service import PasswordResetTokenService
+
 
 class AuthService:
     """
@@ -37,11 +39,13 @@ class AuthService:
         self,
         user_repository: UserRepository,
         token_service: TokenService,
-        refresh_token_service: RefreshTokenService | None = None,
+        refresh_token_service=None,
+        password_reset_token_service: PasswordResetTokenService | None = None,
     ):
         self.user_repo = user_repository
         self.token_service = token_service
         self.refresh_token_service = refresh_token_service
+        self.password_reset_token_service = password_reset_token_service
 
     async def _store_refresh_token_if_enabled(
         self,
@@ -311,4 +315,97 @@ class AuthService:
             revoke_reason="logout_all",
         )
 
-        return len(revoked_tokens)        
+        return len(revoked_tokens)     
+
+
+    async def forgot_password(
+        self,
+        db: AsyncSession,
+        *,
+        email: str,
+    ) -> User | None:
+        """
+        Genera un token de recuperación si el usuario existe y está activo.
+        La respuesta del endpoint debe seguir siendo neutra para no filtrar
+        si el correo existe o no.
+        """
+        user = await self.user_repo.get_by_email(
+            db,
+            email=email,
+        )
+
+        if user is None:
+            return None
+
+        if not user.is_active or user.is_deleted:
+            return None
+
+        if self.password_reset_token_service is None:
+            return None
+
+        await self.password_reset_token_service.create_token(
+            db,
+            user_id=user.id,
+            expires_in_minutes=30,
+        )
+
+        return user
+
+    async def reset_password(
+        self,
+        db: AsyncSession,
+        *,
+        token: str,
+        new_password: str,
+    ) -> User:
+        """
+        Valida el token de recuperación, cambia la contraseña,
+        marca el token como usado y revoca sesiones activas.
+        """
+        if self.password_reset_token_service is None:
+            raise InvalidTokenException(
+                message="El servicio de recuperación de contraseña no está disponible."
+            )
+
+        db_token = await self.password_reset_token_service.get_valid_token(
+            db,
+            token=token,
+        )
+
+        if db_token is None:
+            raise InvalidTokenException(
+                message="El token de recuperación es inválido o ha expirado."
+            )
+
+        user = await self.user_repo.get(
+            db,
+            id=db_token.user_id,
+        )
+
+        if user is None:
+            raise InvalidTokenException(
+                message="El usuario asociado al token no existe."
+            )
+
+        if not user.is_active or user.is_deleted:
+            raise InactiveUserException()
+
+        user.password = get_password_hash(new_password)
+
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+
+        await self.password_reset_token_service.mark_as_used(
+            db,
+            password_reset_token=db_token,
+        )
+
+        if self.refresh_token_service is not None:
+            await self.refresh_token_service.revoke_all_user_tokens(
+                db,
+                user_id=user.id,
+                revoke_reason="password_reset",
+            )
+
+        return user       
