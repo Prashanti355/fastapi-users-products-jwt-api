@@ -1,12 +1,12 @@
 # FastAPI Users & Products JWT API
 
-API REST desarrollada con FastAPI para gestión de usuarios y productos, autenticación JWT, control de acceso por roles, auditoría, manejo de sesiones con refresh tokens, rate limiting, limpieza manual de tokens, migraciones con Alembic, CI con GitHub Actions y despliegue con Docker.
+API REST desarrollada con FastAPI para gestión de usuarios y productos, autenticación JWT, control de acceso por roles, auditoría, manejo de sesiones con refresh tokens, recuperación de contraseña, rate limiting, limpieza manual de tokens, migraciones con Alembic, CI con GitHub Actions y despliegue con Docker.
 
 ## Descripción
 
 Este proyecto implementa una API backend con arquitectura por capas, pensada para crecimiento, mantenimiento y validación continua. Incluye módulos de usuarios, productos y autenticación, documentación interactiva con Swagger, observabilidad mediante logs técnicos, auditoría persistida en PostgreSQL, migraciones reproducibles con Alembic, pruebas automatizadas y control de sesiones del lado del servidor mediante refresh tokens persistidos, rotados y revocables.
 
-El desarrollo se realizó de forma incremental: primero la lógica de usuarios y productos, después autenticación y autorización, luego observabilidad y auditoría, más tarde la formalización del esquema con Alembic y CI, y finalmente el endurecimiento del flujo de sesión con rotación y revocación de refresh tokens, cierre global de sesiones, rate limiting en endpoints sensibles y limpieza manual de tokens obsoletos.
+El desarrollo se realizó de forma incremental: primero la lógica de usuarios y productos, después autenticación y autorización, luego observabilidad y auditoría, más tarde la formalización del esquema con Alembic y CI, y finalmente el endurecimiento del flujo de sesión con rotación y revocación de refresh tokens, cierre global de sesiones, recuperación de contraseña, rate limiting en endpoints sensibles y limpieza manual de tokens obsoletos.
 
 ## Características principales
 
@@ -37,12 +37,15 @@ El desarrollo se realizó de forma incremental: primero la lógica de usuarios y
 - Login con JWT
 - Access token y refresh token
 - Endpoint `/api/v1/auth/me`
+- Endpoint `/api/v1/auth/forgot-password`
+- Endpoint `/api/v1/auth/reset-password`
 - Integración con `Authorize` en Swagger
 - Control de acceso por roles:
   - público
   - usuario autenticado
   - superusuario
 - Endurecimiento del registro público para impedir autoelevación de privilegios
+- Respuesta neutra en recuperación de contraseña para no exponer si un correo existe o no
 
 ### Gestión de sesiones
 
@@ -54,7 +57,17 @@ El desarrollo se realizó de forma incremental: primero la lógica de usuarios y
 - Endpoint `/api/v1/auth/logout-all`
 - Invalidación de refresh tokens revocados
 - Cierre de todas las sesiones activas del usuario autenticado
+- Revocación de sesiones activas tras restablecer contraseña
 - Limpieza manual de tokens expirados o revocados antiguos mediante script
+
+### Recuperación de contraseña
+
+- Persistencia de `password_reset_tokens` en PostgreSQL
+- Generación de token de recuperación
+- Validación de token válido, no usado y no expirado
+- Marcado del token como usado después del restablecimiento
+- Restablecimiento de contraseña con revocación de refresh tokens activos
+- Pruebas de integración para el flujo de recuperación
 
 ### Protección contra abuso
 
@@ -73,7 +86,7 @@ El desarrollo se realizó de forma incremental: primero la lógica de usuarios y
 - Auditoría persistida en PostgreSQL
 - Endpoint protegido `GET /api/v1/audit-logs`
 - Correlación entre logs técnicos y auditoría mediante `request_id`
-- Auditoría de eventos sensibles como login, refresh, logout y logout-all
+- Auditoría de eventos sensibles como login, refresh, logout, logout-all, forgot-password y reset-password
 
 ### Migraciones y persistencia
 
@@ -88,7 +101,7 @@ El desarrollo se realizó de forma incremental: primero la lógica de usuarios y
 - Pruebas de integración
 - Ejecución reproducible dentro de Docker
 - CI con GitHub Actions para migraciones y pruebas automáticas
-- **110 pruebas aprobadas**
+- **116 pruebas aprobadas**
 
 ## Tecnologías utilizadas
 
@@ -147,12 +160,14 @@ app/
 ├── models/
 │   ├── __init__.py
 │   ├── audit_log.py
+│   ├── password_reset_token.py
 │   ├── product.py
 │   ├── refresh_token.py
 │   └── user.py
 ├── repositories/
 │   ├── audit_log_repository.py
 │   ├── base.py
+│   ├── password_reset_token_repository.py
 │   ├── product_repository.py
 │   ├── refresh_token_repository.py
 │   └── user_repository.py
@@ -167,8 +182,10 @@ app/
 │   ├── __init__.py
 │   └── cleanup_refresh_tokens.py
 ├── services/
+│   ├── __init__.py
 │   ├── audit_log_service.py
 │   ├── auth_service.py
+│   ├── password_reset_token_service.py
 │   ├── product_service.py
 │   ├── refresh_token_service.py
 │   ├── token_service.py
@@ -213,6 +230,8 @@ README.md
 * `POST /api/v1/auth/refresh-token`
 * `POST /api/v1/auth/logout`
 * `POST /api/v1/auth/logout-all`
+* `POST /api/v1/auth/forgot-password`
+* `POST /api/v1/auth/reset-password`
 * `GET /api/v1/auth/me`
 
 ### Users
@@ -334,6 +353,8 @@ La tabla `audit_logs` registra eventos sensibles como:
 * `refresh_token`
 * `logout`
 * `logout_all`
+* `forgot_password`
+* `reset_password`
 * `create_user`
 * `update_user`
 * `partial_update_user`
@@ -393,7 +414,7 @@ docker compose exec api pytest tests/unit tests/integration -q
 
 Estado actual:
 
-* **110 pruebas aprobadas**
+* **116 pruebas aprobadas**
 
 ## CI
 
@@ -415,6 +436,8 @@ Actualmente el proyecto incluye:
 * control de acceso por roles
 * gestión de sesiones con refresh tokens persistidos, rotados y revocables
 * logout y logout-all
+* recuperación de contraseña con tokens persistidos
+* revocación de sesiones tras reset de contraseña
 * rate limiting en login y register
 * limpieza manual de refresh tokens expirados o revocados antiguos
 * CORS
@@ -430,7 +453,7 @@ Actualmente el proyecto incluye:
 ## Siguientes pasos
 
 * cobertura de pruebas
-* recuperación de contraseña
+* envío real de correo para recuperación de contraseña
 * ampliación de módulos de negocio
 * endurecimiento adicional de seguridad sobre autenticación y abuso
 
@@ -439,5 +462,4 @@ Actualmente el proyecto incluye:
 Prashanti Peña Guevara
 
 Proyecto backend orientado a construir una API escalable, mantenible y más cercana a un entorno real de desarrollo.
-
 

@@ -2,6 +2,11 @@ import pytest
 from uuid import uuid4
 import asyncio
 
+from app.repositories.password_reset_token_repository import (
+    PasswordResetTokenRepository,
+)
+from app.repositories.user_repository import UserRepository
+
 @pytest.mark.asyncio
 async def test_register_success(async_client, register_public_user):
     result = await register_public_user()
@@ -430,3 +435,151 @@ async def test_login_rate_limit_eventually_returns_429(
         assert all(code == 401 for code in status_codes)
 
     assert rate_limited
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_returns_200_and_creates_token_for_existing_email(
+    async_client,
+    register_public_user,
+    db_session,
+):
+    suffix = uuid4().hex[:8]
+
+    registration = await register_public_user(
+        username=f"fp_{suffix}",
+        email=f"fp_{suffix}@example.com",
+    )
+    payload = registration["payload"]
+
+    response = await async_client.post(
+        "/api/v1/auth/forgot-password",
+        json={"email": payload["email"]},
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["codigo"] == 200
+    assert body["mensaje"] == "Si el correo existe, se generó un enlace de recuperación."
+
+    user_repo = UserRepository()
+    token_repo = PasswordResetTokenRepository()
+
+    user = await user_repo.get_by_email(
+        db_session,
+        email=payload["email"],
+    )
+    assert user is not None
+
+    db_token = await token_repo.get_latest_by_user_id(
+        db_session,
+        user_id=user.id,
+    )
+    assert db_token is not None
+    assert db_token.used_at is None
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_returns_neutral_response_for_unknown_email(
+    async_client,
+):
+    response = await async_client.post(
+        "/api/v1/auth/forgot-password",
+        json={"email": "no_existe_reset@example.com"},
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+    assert body["codigo"] == 200
+    assert body["mensaje"] == "Si el correo existe, se generó un enlace de recuperación."        
+
+@pytest.mark.asyncio
+async def test_reset_password_changes_password_and_revokes_refresh_tokens(
+    async_client,
+    register_public_user,
+    login_user,
+    db_session,
+):
+    suffix = uuid4().hex[:8]
+    original_password = "Clave1234"
+    new_password = "NuevaClave1234"
+
+    registration = await register_public_user(
+        username=f"rp_{suffix}",
+        email=f"rp_{suffix}@example.com",
+        password=original_password,
+    )
+    payload = registration["payload"]
+
+    login_response = await login_user(
+        username=payload["username"],
+        password=original_password,
+    )
+    assert login_response.status_code == 200
+    login_tokens = login_response.json()
+    old_refresh_token = login_tokens["refresh_token"]
+
+    forgot_response = await async_client.post(
+        "/api/v1/auth/forgot-password",
+        json={"email": payload["email"]},
+    )
+    assert forgot_response.status_code == 200
+
+    user_repo = UserRepository()
+    token_repo = PasswordResetTokenRepository()
+
+    user = await user_repo.get_by_email(
+        db_session,
+        email=payload["email"],
+    )
+    assert user is not None
+
+    db_token = await token_repo.get_latest_by_user_id(
+        db_session,
+        user_id=user.id,
+    )
+    assert db_token is not None
+
+    reset_response = await async_client.post(
+        "/api/v1/auth/reset-password",
+        json={
+            "token": db_token.token,
+            "new_password": new_password,
+        },
+    )
+
+    assert reset_response.status_code == 200
+    reset_body = reset_response.json()
+    assert reset_body["codigo"] == 200
+    assert reset_body["mensaje"] == "Contraseña restablecida correctamente."
+
+    old_login = await login_user(
+        username=payload["username"],
+        password=original_password,
+    )
+    assert old_login.status_code == 401
+
+    new_login = await login_user(
+        username=payload["username"],
+        password=new_password,
+    )
+    assert new_login.status_code == 200
+
+    refresh_after_reset = await async_client.post(
+        "/api/v1/auth/refresh-token",
+        json={"refresh_token": old_refresh_token},
+    )
+    assert refresh_after_reset.status_code == 401    
+
+@pytest.mark.asyncio
+async def test_reset_password_with_invalid_token_returns_401(async_client):
+    response = await async_client.post(
+        "/api/v1/auth/reset-password",
+        json={
+            "token": "token-invalido-reset-password",
+            "new_password": "NuevaClave1234",
+        },
+    )
+
+    assert response.status_code == 401    
