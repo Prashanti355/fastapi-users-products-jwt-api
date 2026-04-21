@@ -282,3 +282,201 @@ async def test_deleted_product_does_not_appear_in_public_list(
 
     assert product_id not in ids
     assert product_name not in names
+
+
+@pytest.mark.asyncio
+async def test_public_get_nonexistent_product_returns_404(async_client):
+    response = await async_client.get("/api/v1/products/00000000-0000-0000-0000-000000000000")
+
+    assert response.status_code == 404
+    body = response.json()
+    assert body["codigo"] == 404
+
+
+@pytest.mark.asyncio
+async def test_authenticated_user_cannot_delete_product_returns_403(
+    async_client,
+    create_and_login_user,
+    create_product,
+):
+    auth_data = await create_and_login_user()
+    headers = auth_data["headers"]
+
+    created = await create_product(headers=headers)
+    assert created["response"].status_code == 201
+
+    product_id = created["response"].json()["resultado"]["id"]
+
+    response = await async_client.delete(
+        f"/api/v1/products/{product_id}",
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+    body = response.json()
+    assert body["codigo"] == 403
+
+
+@pytest.mark.asyncio
+async def test_authenticated_user_cannot_restore_product_returns_403(
+    async_client,
+    register_public_user,
+    get_auth_headers,
+    promote_user_to_superuser,
+    create_and_login_user,
+    create_product,
+):
+    admin_registration = await register_public_user()
+    admin_payload = admin_registration["payload"]
+    assert admin_registration["response"].status_code == 201
+
+    await promote_user_to_superuser(admin_payload["username"])
+    admin_headers = await get_auth_headers(
+        username=admin_payload["username"],
+        password=admin_payload["password"],
+    )
+
+    created = await create_product(headers=admin_headers)
+    assert created["response"].status_code == 201
+    product_id = created["response"].json()["resultado"]["id"]
+
+    delete_response = await async_client.delete(
+        f"/api/v1/products/{product_id}",
+        headers=admin_headers,
+    )
+    assert delete_response.status_code == 200
+
+    user_auth = await create_and_login_user()
+    user_headers = user_auth["headers"]
+
+    restore_response = await async_client.patch(
+        f"/api/v1/products/{product_id}/restore",
+        headers=user_headers,
+    )
+
+    assert restore_response.status_code == 403
+    body = restore_response.json()
+    assert body["codigo"] == 403
+
+
+@pytest.mark.asyncio
+async def test_public_cannot_patch_product_without_token(
+    async_client,
+    create_and_login_user,
+    create_product,
+):
+    auth_data = await create_and_login_user()
+    headers = auth_data["headers"]
+
+    created = await create_product(headers=headers)
+    assert created["response"].status_code == 201
+    product_id = created["response"].json()["resultado"]["id"]
+
+    response = await async_client.patch(
+        f"/api/v1/products/{product_id}",
+        json={"price": 123.45},
+    )
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_public_cannot_delete_product_without_token(
+    async_client,
+    create_and_login_user,
+    create_product,
+):
+    auth_data = await create_and_login_user()
+    headers = auth_data["headers"]
+
+    created = await create_product(headers=headers)
+    assert created["response"].status_code == 201
+    product_id = created["response"].json()["resultado"]["id"]
+
+    response = await async_client.delete(f"/api/v1/products/{product_id}")
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_partial_update_nonexistent_product_returns_404(
+    async_client,
+    create_and_login_user,
+):
+    auth_data = await create_and_login_user()
+    headers = auth_data["headers"]
+
+    response = await async_client.patch(
+        "/api/v1/products/00000000-0000-0000-0000-000000000000",
+        json={"price": 999.99},
+        headers=headers,
+    )
+
+    assert response.status_code == 404
+    body = response.json()
+    assert body["codigo"] == 404
+
+
+@pytest.mark.asyncio
+async def test_superuser_get_deleted_product_by_id_returns_404(
+    async_client,
+    register_public_user,
+    get_auth_headers,
+    promote_user_to_superuser,
+    create_product,
+):
+    admin_registration = await register_public_user()
+    admin_payload = admin_registration["payload"]
+    assert admin_registration["response"].status_code == 201
+
+    await promote_user_to_superuser(admin_payload["username"])
+    admin_headers = await get_auth_headers(
+        username=admin_payload["username"],
+        password=admin_payload["password"],
+    )
+
+    created = await create_product(headers=admin_headers)
+    assert created["response"].status_code == 201
+    product_id = created["response"].json()["resultado"]["id"]
+
+    delete_response = await async_client.delete(
+        f"/api/v1/products/{product_id}",
+        headers=admin_headers,
+    )
+    assert delete_response.status_code == 200
+
+    response = await async_client.get(
+        f"/api/v1/products/{product_id}",
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+    body = response.json()
+    assert body["codigo"] == 404
+
+
+@pytest.mark.asyncio
+async def test_restore_nonexistent_product_returns_404_for_superuser(
+    async_client,
+    register_public_user,
+    get_auth_headers,
+    promote_user_to_superuser,
+):
+    admin_registration = await register_public_user()
+    admin_payload = admin_registration["payload"]
+    assert admin_registration["response"].status_code == 201
+
+    await promote_user_to_superuser(admin_payload["username"])
+    admin_headers = await get_auth_headers(
+        username=admin_payload["username"],
+        password=admin_payload["password"],
+    )
+
+    response = await async_client.patch(
+        "/api/v1/products/00000000-0000-0000-0000-000000000000/restore",
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+    body = response.json()
+    assert body["codigo"] == 404
