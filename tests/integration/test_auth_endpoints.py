@@ -1,6 +1,7 @@
 import pytest
 from uuid import uuid4
 import asyncio
+from sqlalchemy import text
 
 from app.repositories.password_reset_token_repository import (
     PasswordResetTokenRepository,
@@ -553,3 +554,212 @@ async def test_reset_password_with_invalid_token_returns_401(async_client):
     )
 
     assert response.status_code == 401    
+
+@pytest.mark.asyncio
+async def test_register_duplicate_email_returns_conflict(
+    async_client,
+    register_public_user,
+):
+    first_registration = await register_public_user()
+    first_payload = first_registration["payload"]
+
+    duplicated_email_payload = {
+        **first_payload,
+        "username": f"u_{uuid4().hex[:8]}",
+    }
+
+    response = await async_client.post(
+        "/api/v1/auth/register",
+        json=duplicated_email_payload,
+    )
+
+    assert response.status_code == 409
+    body = response.json()
+    assert body["codigo"] == 409
+
+
+@pytest.mark.asyncio
+async def test_login_with_unknown_user_returns_401(async_client):
+    response = await async_client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": "usuario_no_existe",
+            "password": "Clave1234",
+        },
+    )
+
+    assert response.status_code == 401
+    body = response.json()
+    assert body["codigo"] == 401
+
+
+@pytest.mark.asyncio
+async def test_login_with_inactive_user_returns_403(
+    async_client,
+    register_public_user,
+    db_session,
+):
+    registration = await register_public_user()
+    payload = registration["payload"]
+
+    await db_session.execute(
+        text(
+            """
+            UPDATE users
+            SET is_active = FALSE
+            WHERE username = :username
+            """
+        ),
+        {"username": payload["username"]},
+    )
+    await db_session.commit()
+
+    response = await async_client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": payload["username"],
+            "password": payload["password"],
+        },
+    )
+
+    assert response.status_code == 403
+    body = response.json()
+    assert body["codigo"] == 403
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_with_inactive_user_returns_403(
+    async_client,
+    register_public_user,
+    db_session,
+):
+    registration = await register_public_user()
+    payload = registration["payload"]
+
+    assert registration["response"].status_code == 201
+    refresh_token = registration["response"].json()["resultado"]["refresh_token"]
+
+    await db_session.execute(
+        text(
+            """
+            UPDATE users
+            SET is_active = FALSE
+            WHERE username = :username
+            """
+        ),
+        {"username": payload["username"]},
+    )
+    await db_session.commit()
+
+    response = await async_client.post(
+        "/api/v1/auth/refresh-token",
+        json={"refresh_token": refresh_token},
+    )
+
+    assert response.status_code == 403
+    body = response.json()
+    assert body["codigo"] == 403
+
+
+@pytest.mark.asyncio
+async def test_me_with_invalid_token_returns_401(async_client):
+    response = await async_client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": "Bearer token.invalido.de.prueba"},
+    )
+
+    assert response.status_code == 401
+    body = response.json()
+    assert body["codigo"] == 401
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_with_inactive_user_returns_neutral_response(
+    async_client,
+    register_public_user,
+    db_session,
+):
+    registration = await register_public_user()
+    payload = registration["payload"]
+
+    await db_session.execute(
+        text(
+            """
+            UPDATE users
+            SET is_active = FALSE
+            WHERE username = :username
+            """
+        ),
+        {"username": payload["username"]},
+    )
+    await db_session.commit()
+
+    response = await async_client.post(
+        "/api/v1/auth/forgot-password",
+        json={"email": payload["email"]},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["codigo"] == 200
+    assert body["mensaje"] == "Si el correo existe, se generó un enlace de recuperación."
+
+
+@pytest.mark.asyncio
+async def test_reset_password_token_cannot_be_reused(
+    async_client,
+    register_public_user,
+    db_session,
+):
+    suffix = uuid4().hex[:8]
+    new_password = "NuevaClave1234"
+
+    registration = await register_public_user(
+        username=f"reuse_{suffix}",
+        email=f"reuse_{suffix}@example.com",
+        password="Clave1234",
+    )
+    payload = registration["payload"]
+
+    forgot_response = await async_client.post(
+        "/api/v1/auth/forgot-password",
+        json={"email": payload["email"]},
+    )
+    assert forgot_response.status_code == 200
+
+    user_repo = UserRepository()
+    token_repo = PasswordResetTokenRepository()
+
+    user = await user_repo.get_by_email(
+        db_session,
+        email=payload["email"],
+    )
+    assert user is not None
+
+    db_token = await token_repo.get_latest_by_user_id(
+        db_session,
+        user_id=user.id,
+    )
+    assert db_token is not None
+
+    first_reset = await async_client.post(
+        "/api/v1/auth/reset-password",
+        json={
+            "token": db_token.token,
+            "new_password": new_password,
+        },
+    )
+
+    assert first_reset.status_code == 200
+
+    second_reset = await async_client.post(
+        "/api/v1/auth/reset-password",
+        json={
+            "token": db_token.token,
+            "new_password": "OtraClave1234",
+        },
+    )
+
+    assert second_reset.status_code == 401
+    body = second_reset.json()
+    assert body["codigo"] == 401    
