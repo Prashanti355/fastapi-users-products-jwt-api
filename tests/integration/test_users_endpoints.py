@@ -316,3 +316,249 @@ async def test_superuser_can_delete_and_restore_user(
     restore_body = restore_response.json()
     assert restore_body["codigo"] == 200
     assert restore_body["resultado"]["is_deleted"] is False
+
+@pytest.mark.asyncio
+async def test_normal_user_cannot_get_other_user_returns_403(
+    async_client,
+    create_and_login_user,
+):
+    auth_data_1 = await create_and_login_user()
+    headers_1 = auth_data_1["headers"]
+
+    auth_data_2 = await create_and_login_user()
+    headers_2 = auth_data_2["headers"]
+
+    me_2 = await _get_me(async_client, headers_2)
+
+    response = await async_client.get(
+        f"/api/v1/users/{me_2['id']}",
+        headers=headers_1,
+    )
+
+    assert response.status_code == 403
+    body = response.json()
+    assert body["codigo"] == 403
+
+
+@pytest.mark.asyncio
+async def test_normal_user_cannot_partial_update_other_user_returns_403(
+    async_client,
+    create_and_login_user,
+):
+    auth_data_1 = await create_and_login_user()
+    headers_1 = auth_data_1["headers"]
+
+    auth_data_2 = await create_and_login_user()
+    headers_2 = auth_data_2["headers"]
+
+    me_2 = await _get_me(async_client, headers_2)
+
+    response = await async_client.patch(
+        f"/api/v1/users/{me_2['id']}",
+        json={"occupation": "No autorizado"},
+        headers=headers_1,
+    )
+
+    assert response.status_code == 403
+    body = response.json()
+    assert body["codigo"] == 403
+
+
+@pytest.mark.asyncio
+async def test_normal_user_cannot_create_user_returns_403(
+    async_client,
+    create_and_login_user,
+    build_public_register_payload,
+    unique_suffix,
+):
+    auth_data = await create_and_login_user()
+    headers = auth_data["headers"]
+
+    payload = build_public_register_payload(unique_suffix)
+
+    response = await async_client.post(
+        "/api/v1/users",
+        json={
+            **payload,
+            "is_active": True,
+            "is_superuser": False,
+            "role": "user",
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 403
+    body = response.json()
+    assert body["codigo"] == 403
+
+
+@pytest.mark.asyncio
+async def test_superuser_can_get_other_user_success(
+    async_client,
+    register_public_user,
+    get_auth_headers,
+    promote_user_to_superuser,
+):
+    admin_registration = await register_public_user()
+    admin_payload = admin_registration["payload"]
+    assert admin_registration["response"].status_code == 201
+
+    await promote_user_to_superuser(admin_payload["username"])
+    admin_headers = await get_auth_headers(
+        username=admin_payload["username"],
+        password=admin_payload["password"],
+    )
+
+    target_registration = await register_public_user()
+    target_payload = target_registration["payload"]
+    assert target_registration["response"].status_code == 201
+
+    target_headers = await get_auth_headers(
+        username=target_payload["username"],
+        password=target_payload["password"],
+    )
+    target_me = await _get_me(async_client, target_headers)
+
+    response = await async_client.get(
+        f"/api/v1/users/{target_me['id']}",
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["codigo"] == 200
+    assert body["resultado"]["id"] == target_me["id"]
+    assert body["resultado"]["username"] == target_payload["username"]
+
+
+@pytest.mark.asyncio
+async def test_superuser_can_partial_update_privileged_fields_of_other_user(
+    async_client,
+    register_public_user,
+    get_auth_headers,
+    promote_user_to_superuser,
+):
+    admin_registration = await register_public_user()
+    admin_payload = admin_registration["payload"]
+    assert admin_registration["response"].status_code == 201
+
+    await promote_user_to_superuser(admin_payload["username"])
+    admin_headers = await get_auth_headers(
+        username=admin_payload["username"],
+        password=admin_payload["password"],
+    )
+
+    target_registration = await register_public_user()
+    target_payload = target_registration["payload"]
+    assert target_registration["response"].status_code == 201
+
+    target_headers = await get_auth_headers(
+        username=target_payload["username"],
+        password=target_payload["password"],
+    )
+    target_me = await _get_me(async_client, target_headers)
+
+    response = await async_client.patch(
+        f"/api/v1/users/{target_me['id']}",
+        json={
+            "role": "admin",
+            "is_superuser": True,
+            "is_active": True,
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["codigo"] == 200
+    assert body["resultado"]["role"] == "admin"
+    assert body["resultado"]["is_superuser"] is True
+
+
+@pytest.mark.asyncio
+async def test_superuser_create_user_with_duplicate_username_returns_409(
+    async_client,
+    register_public_user,
+    get_auth_headers,
+    promote_user_to_superuser,
+    build_public_register_payload,
+    unique_suffix,
+):
+    admin_registration = await register_public_user()
+    admin_payload = admin_registration["payload"]
+    assert admin_registration["response"].status_code == 201
+
+    await promote_user_to_superuser(admin_payload["username"])
+    admin_headers = await get_auth_headers(
+        username=admin_payload["username"],
+        password=admin_payload["password"],
+    )
+
+    existing_registration = await register_public_user()
+    existing_payload = existing_registration["payload"]
+    assert existing_registration["response"].status_code == 201
+
+    payload = build_public_register_payload(unique_suffix)
+    payload["username"] = existing_payload["username"]
+
+    response = await async_client.post(
+        "/api/v1/users",
+        json={
+            **payload,
+            "is_active": True,
+            "is_superuser": False,
+            "role": "user",
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 409
+    body = response.json()
+    assert body["codigo"] == 409
+
+
+@pytest.mark.asyncio
+async def test_normal_user_cannot_deactivate_user_returns_403(
+    async_client,
+    create_and_login_user,
+):
+    auth_data_1 = await create_and_login_user()
+    headers_1 = auth_data_1["headers"]
+
+    auth_data_2 = await create_and_login_user()
+    headers_2 = auth_data_2["headers"]
+
+    me_2 = await _get_me(async_client, headers_2)
+
+    response = await async_client.patch(
+        f"/api/v1/users/{me_2['id']}/deactivate",
+        headers=headers_1,
+    )
+
+    assert response.status_code == 403
+    body = response.json()
+    assert body["codigo"] == 403
+
+
+@pytest.mark.asyncio
+async def test_normal_user_cannot_delete_user_returns_403(
+    async_client,
+    create_and_login_user,
+):
+    auth_data_1 = await create_and_login_user()
+    headers_1 = auth_data_1["headers"]
+
+    auth_data_2 = await create_and_login_user()
+    headers_2 = auth_data_2["headers"]
+
+    me_2 = await _get_me(async_client, headers_2)
+
+    response = await async_client.delete(
+        f"/api/v1/users/{me_2['id']}",
+        headers=headers_1,
+    )
+
+    assert response.status_code == 403
+    body = response.json()
+    assert body["codigo"] == 403
+

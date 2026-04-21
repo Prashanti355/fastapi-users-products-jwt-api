@@ -371,36 +371,6 @@ async def test_logout_all_revokes_all_refresh_tokens_for_current_user(
     )
     assert second_refresh_after_logout_all.status_code == 401    
 
-@pytest.mark.asyncio
-async def test_login_rate_limit_eventually_returns_429(
-    async_client,
-    register_public_user,
-):
-    registration = await register_public_user()
-    payload = registration["payload"]
-
-    rate_limited_response = None
-    headers = {"X-Test-RateLimit-Key": f"login-rl-{uuid4().hex}"}
-
-    for _ in range(250):
-        response = await async_client.post(
-            "/api/v1/auth/login",
-            data={
-                "username": payload["username"],
-                "password": "ClaveIncorrecta123",
-            },
-            headers=headers,
-        )
-
-        if response.status_code == 429:
-            rate_limited_response = response
-            break
-
-        assert response.status_code == 401
-
-    assert rate_limited_response is not None
-    assert rate_limited_response.status_code == 429
-
 
 @pytest.mark.asyncio
 async def test_login_rate_limit_eventually_returns_429(

@@ -59,6 +59,41 @@ def token_service():
 
 
 @pytest.fixture
+def refresh_token_service():
+    service = MagicMock()
+    service.get_by_jti = AsyncMock()
+    service.revoke_token = AsyncMock()
+    service.revoke_all_user_tokens = AsyncMock(
+        return_value=[SimpleNamespace(), SimpleNamespace()]
+    )
+    return service
+
+
+@pytest.fixture
+def password_reset_token_service():
+    service = MagicMock()
+    service.create_token = AsyncMock()
+    service.get_valid_token = AsyncMock()
+    service.mark_as_used = AsyncMock()
+    return service
+
+
+@pytest.fixture
+def auth_service_full(
+    user_repository,
+    token_service,
+    refresh_token_service,
+    password_reset_token_service,
+):
+    return AuthService(
+        user_repository,
+        token_service,
+        refresh_token_service=refresh_token_service,
+        password_reset_token_service=password_reset_token_service,
+    )
+
+
+@pytest.fixture
 def auth_service(user_repository, token_service):
     return AuthService(user_repository, token_service)
 
@@ -308,3 +343,243 @@ async def test_get_current_user_raises_when_user_is_inactive(auth_service, user_
             db_session,
             token="access_token"
         )
+
+
+@pytest.mark.asyncio
+async def test_logout_revokes_refresh_token(
+    auth_service_full,
+    refresh_token_service,
+    token_service,
+    db_session,
+):
+    stored_token = SimpleNamespace(revoked_at=None)
+    refresh_token_service.get_by_jti.return_value = stored_token
+    token_service.verify_refresh_token.return_value = TokenData(
+        sub=str(uuid4()),
+        jti="jti_logout_test",
+    )
+
+    await auth_service_full.logout(
+        db_session,
+        refresh_token="refresh_token_value",
+    )
+
+    refresh_token_service.get_by_jti.assert_awaited_once_with(
+        db_session,
+        jti="jti_logout_test",
+    )
+    refresh_token_service.revoke_token.assert_awaited_once_with(
+        db_session,
+        jti="jti_logout_test",
+        revoke_reason="logout",
+    )
+
+
+@pytest.mark.asyncio
+async def test_logout_all_revokes_all_user_tokens(
+    auth_service_full,
+    refresh_token_service,
+    db_session,
+):
+    user_id = uuid4()
+
+    result = await auth_service_full.logout_all(
+        db_session,
+        user_id=user_id,
+    )
+
+    assert result == 2
+    refresh_token_service.revoke_all_user_tokens.assert_awaited_once_with(
+        db_session,
+        user_id=user_id,
+        revoke_reason="logout_all",
+    )
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_returns_none_when_user_does_not_exist(
+    auth_service_full,
+    user_repository,
+    password_reset_token_service,
+    db_session,
+):
+    user_repository.get_by_email.return_value = None
+
+    result = await auth_service_full.forgot_password(
+        db_session,
+        email="noexiste@example.com",
+    )
+
+    assert result is None
+    password_reset_token_service.create_token.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_returns_none_when_user_is_inactive(
+    auth_service_full,
+    user_repository,
+    password_reset_token_service,
+    db_session,
+):
+    user_repository.get_by_email.return_value = build_user(is_active=False)
+
+    result = await auth_service_full.forgot_password(
+        db_session,
+        email="maya@example.com",
+    )
+
+    assert result is None
+    password_reset_token_service.create_token.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_returns_none_when_user_is_deleted(
+    auth_service_full,
+    user_repository,
+    password_reset_token_service,
+    db_session,
+):
+    user_repository.get_by_email.return_value = build_user(is_deleted=True)
+
+    result = await auth_service_full.forgot_password(
+        db_session,
+        email="maya@example.com",
+    )
+
+    assert result is None
+    password_reset_token_service.create_token.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_creates_token_for_valid_user(
+    auth_service_full,
+    user_repository,
+    password_reset_token_service,
+    db_session,
+):
+    user = build_user()
+    user_repository.get_by_email.return_value = user
+
+    result = await auth_service_full.forgot_password(
+        db_session,
+        email=user.email,
+    )
+
+    assert result == user
+    password_reset_token_service.create_token.assert_awaited_once_with(
+        db_session,
+        user_id=user.id,
+        expires_in_minutes=30,
+    )
+
+
+@pytest.mark.asyncio
+async def test_reset_password_raises_when_token_service_is_missing(
+    user_repository,
+    token_service,
+    db_session,
+):
+    service = AuthService(user_repository, token_service)
+
+    with pytest.raises(InvalidTokenException):
+        await service.reset_password(
+            db_session,
+            token="token_reset",
+            new_password="NuevaClave1234",
+        )
+
+
+@pytest.mark.asyncio
+async def test_reset_password_raises_when_token_is_invalid(
+    auth_service_full,
+    password_reset_token_service,
+    db_session,
+):
+    password_reset_token_service.get_valid_token.return_value = None
+
+    with pytest.raises(InvalidTokenException):
+        await auth_service_full.reset_password(
+            db_session,
+            token="token_reset",
+            new_password="NuevaClave1234",
+        )
+
+
+@pytest.mark.asyncio
+async def test_reset_password_raises_when_user_does_not_exist(
+    auth_service_full,
+    password_reset_token_service,
+    user_repository,
+    db_session,
+):
+    db_token = SimpleNamespace(user_id=uuid4())
+    password_reset_token_service.get_valid_token.return_value = db_token
+    user_repository.get.return_value = None
+
+    with pytest.raises(InvalidTokenException):
+        await auth_service_full.reset_password(
+            db_session,
+            token="token_reset",
+            new_password="NuevaClave1234",
+        )
+
+
+@pytest.mark.asyncio
+async def test_reset_password_raises_when_user_is_inactive(
+    auth_service_full,
+    password_reset_token_service,
+    user_repository,
+    db_session,
+):
+    user = build_user(is_active=False)
+    db_token = SimpleNamespace(user_id=user.id)
+
+    password_reset_token_service.get_valid_token.return_value = db_token
+    user_repository.get.return_value = user
+
+    with pytest.raises(InactiveUserException):
+        await auth_service_full.reset_password(
+            db_session,
+            token="token_reset",
+            new_password="NuevaClave1234",
+        )
+
+
+@pytest.mark.asyncio
+async def test_reset_password_success_hashes_password_marks_token_used_and_revokes_sessions(
+    auth_service_full,
+    password_reset_token_service,
+    refresh_token_service,
+    user_repository,
+    db_session,
+    mocker,
+):
+    user = build_user(password="old_hash")
+    db_token = SimpleNamespace(user_id=user.id)
+
+    password_reset_token_service.get_valid_token.return_value = db_token
+    user_repository.get.return_value = user
+    mocker.patch("app.services.auth_service.get_password_hash", return_value="new_hash")
+
+    result = await auth_service_full.reset_password(
+        db_session,
+        token="token_reset",
+        new_password="NuevaClave1234",
+    )
+
+    assert result == user
+    assert user.password == "new_hash"
+
+    db_session.add.assert_called_with(user)
+    db_session.commit.assert_awaited()
+    db_session.refresh.assert_awaited_with(user)
+
+    password_reset_token_service.mark_as_used.assert_awaited_once_with(
+        db_session,
+        password_reset_token=db_token,
+    )
+    refresh_token_service.revoke_all_user_tokens.assert_awaited_once_with(
+        db_session,
+        user_id=user.id,
+        revoke_reason="password_reset",
+    )
