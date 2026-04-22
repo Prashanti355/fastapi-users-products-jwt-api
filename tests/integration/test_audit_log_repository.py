@@ -216,6 +216,7 @@ async def test_audit_log_repository_get_multi_supports_alternate_sort_fields_and
     repo = AuditLogRepository()
     base_time = datetime.now(timezone.utc)
     suffix = uuid4().hex[:6]
+    shared_request_id = f"req-sort-{suffix}"
 
     log_b = await repo.create(
         db_session,
@@ -224,7 +225,7 @@ async def test_audit_log_repository_get_multi_supports_alternate_sort_fields_and
             entity="user",
             actor_username=f"bravo_{suffix}",
             status="success",
-            request_id=f"req-b-{suffix}",
+            request_id=shared_request_id,
             created_at=base_time - timedelta(minutes=2),
         ),
     )
@@ -235,7 +236,7 @@ async def test_audit_log_repository_get_multi_supports_alternate_sort_fields_and
             entity="user",
             actor_username=f"alpha_{suffix}",
             status="success",
-            request_id=f"req-a-{suffix}",
+            request_id=shared_request_id,
             created_at=base_time - timedelta(minutes=1),
         ),
     )
@@ -244,21 +245,19 @@ async def test_audit_log_repository_get_multi_supports_alternate_sort_fields_and
         db_session,
         action="update_user",
         entity="user",
+        request_id=shared_request_id,
         page=1,
         limit=10,
         sort_by="actor_username",
         order="asc",
     )
 
-    filtered_items = [
-        item for item in result["items"]
-        if item.id in {log_a.id, log_b.id}
-    ]
-
-    assert len(filtered_items) == 2
-    assert filtered_items[0].actor_username == f"alpha_{suffix}"
-    assert filtered_items[1].actor_username == f"bravo_{suffix}"
-
+    assert result["total"] == 2
+    assert len(result["items"]) == 2
+    assert result["items"][0].id == log_a.id
+    assert result["items"][0].actor_username == f"alpha_{suffix}"
+    assert result["items"][1].id == log_b.id
+    assert result["items"][1].actor_username == f"bravo_{suffix}"
 
 @pytest.mark.asyncio
 async def test_audit_log_repository_get_multi_falls_back_to_created_at_when_sort_field_is_invalid(db_session):
