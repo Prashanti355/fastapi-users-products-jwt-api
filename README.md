@@ -8,6 +8,12 @@ Este proyecto implementa una API backend con arquitectura por capas, pensada par
 
 El desarrollo se realizó de forma incremental: primero la lógica de usuarios y productos, después autenticación y autorización, luego observabilidad y auditoría, más tarde la formalización del esquema con Alembic y CI, y finalmente el endurecimiento del flujo de sesión con rotación y revocación de refresh tokens, cierre global de sesiones, recuperación de contraseña, rate limiting en endpoints sensibles y limpieza manual de tokens obsoletos.
 
+## Vista de la documentación interactiva
+
+La API incluye documentación interactiva con Swagger, lo que permite explorar endpoints, probar flujos de autenticación y validar respuestas directamente desde el navegador.
+
+![Swagger UI](docs/images/swagger-ui.png)
+
 ## Características principales
 
 ### Usuarios
@@ -102,7 +108,7 @@ El desarrollo se realizó de forma incremental: primero la lógica de usuarios y
 - Ejecución reproducible dentro de Docker
 - CI con GitHub Actions para migraciones y pruebas automáticas
 - **329 pruebas aprobadas**
-- **98% de cobertura global**   
+- **98% de cobertura global**
 
 ## Tecnologías utilizadas
 
@@ -204,8 +210,15 @@ docker/
     └── Dockerfile
 
 .github/
-└── workflows/
-    └── ci.yml
+├── workflows/
+│   └── ci.yml
+└── PULL_REQUEST_TEMPLATE.md
+
+docs/
+├── DEPLOY_CHECKLIST.md
+├── QUICKSTART.md
+└── images/
+    └── swagger-ui.png
 
 tests/
 ├── integration/
@@ -220,6 +233,9 @@ pytest.ini
 requirements.txt
 requirements-dev.txt
 .env.example
+.gitignore
+CONTRIBUTING.md
+LICENSE
 README.md
 ````
 
@@ -310,6 +326,11 @@ python -m uvicorn app.main:app --reload
 
 ## Variables de entorno principales
 
+* `PROJECT_NAME`
+* `VERSION`
+* `DEBUG`
+* `ENVIRONMENT`
+* `API_V1_STR`
 * `POSTGRES_USER`
 * `POSTGRES_PASSWORD`
 * `POSTGRES_DB`
@@ -321,6 +342,8 @@ python -m uvicorn app.main:app --reload
 * `ALGORITHM`
 * `ACCESS_TOKEN_EXPIRE_MINUTES`
 * `REFRESH_TOKEN_EXPIRE_DAYS`
+* `DEFAULT_PAGE_SIZE`
+* `MAX_PAGE_SIZE`
 * `BACKEND_CORS_ORIGINS`
 * `LOG_DIR`
 * `RATE_LIMIT_ENABLED`
@@ -425,6 +448,15 @@ Estado actual:
 * **329 pruebas aprobadas**
 * **98% de cobertura global**
 
+## Documentación operativa
+
+Además del README, el repositorio incluye:
+
+* `CONTRIBUTING.md` para reglas básicas de colaboración
+* `docs/QUICKSTART.md` para arranque rápido del proyecto
+* `docs/DEPLOY_CHECKLIST.md` para validación previa a despliegue
+* `.github/PULL_REQUEST_TEMPLATE.md` para estandarizar futuros Pull Requests
+
 ## CI
 
 El proyecto incluye un workflow de GitHub Actions para:
@@ -435,38 +467,24 @@ El proyecto incluye un workflow de GitHub Actions para:
 * correr pruebas unitarias e integración
 * reducir corridas duplicadas con control de concurrencia
 
+## Licencia
+
+Este proyecto se distribuye bajo licencia MIT. Consulta el archivo `LICENSE` para más detalles.
+
 ## Estado del proyecto
 
-Actualmente el proyecto incluye:
-
-* usuarios
-* productos
-* autenticación y autorización con JWT
-* control de acceso por roles
-* gestión de sesiones con refresh tokens persistidos, rotados y revocables
-* logout y logout-all
-* recuperación de contraseña con tokens persistidos
-* revocación de sesiones tras reset de contraseña
-* rate limiting en login y register
-* limpieza manual de refresh tokens expirados o revocados antiguos
-* CORS
-* logs técnicos
-* logs de auditoría
-* endpoint de consulta de auditoría
-* migraciones con Alembic
-* CI con GitHub Actions
-* documentación interactiva
-* pruebas unitarias e integración
-* cobertura automatizada de pruebas
+El proyecto se encuentra en un estado funcional y consolidado. La base principal del backend ya está implementada, cubierta con pruebas automatizadas y documentada. Los pendientes restantes son incrementales y no bloquean el uso del proyecto como muestra técnica ni como base para seguir ampliando funcionalidades.
 
 ## Siguientes pasos
 
-* envío real de correo para recuperación de contraseña
+* integración de envío real de correo para recuperación de contraseña
 * ampliación de módulos de negocio
 * endurecimiento adicional de seguridad sobre autenticación y abuso
+* refinamientos menores de observabilidad y despliegue
 
 ## Autor
 
 Prashanti Peña Guevara
 
 Proyecto backend orientado a construir una API escalable, mantenible y más cercana a un entorno real de desarrollo.
+
