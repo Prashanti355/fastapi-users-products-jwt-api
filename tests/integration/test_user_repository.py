@@ -110,7 +110,7 @@ async def test_user_repository_get_by_email_returns_none_when_missing(db_session
 @pytest.mark.asyncio
 async def test_user_repository_get_multi_users_applies_default_is_deleted_filter(db_session):
     repo = UserRepository()
-    suffix = uuid4().hex[:4]
+    suffix = uuid4().hex[:12]
     search_token = f"ln{suffix}"
 
     visible_user = build_user(

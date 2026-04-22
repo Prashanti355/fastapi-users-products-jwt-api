@@ -102,7 +102,7 @@ El desarrollo se realizó de forma incremental: primero la lógica de usuarios y
 - Ejecución reproducible dentro de Docker
 - CI con GitHub Actions para migraciones y pruebas automáticas
 - **329 pruebas aprobadas**
-- **98% de cobertura global**
+- **98% de cobertura global**   
 
 ## Tecnologías utilizadas
 
