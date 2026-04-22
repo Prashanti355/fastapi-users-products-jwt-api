@@ -648,3 +648,47 @@ async def test_deactivate_user_updates_when_user_is_active(
             "deactivation_reason": "Suspensión temporal",
         },
     )        
+
+@pytest.mark.asyncio
+async def test_update_user_raises_when_email_already_exists(
+    user_service,
+    user_repository,
+    db_session,
+):
+    db_obj = build_user(
+        username="maya",
+        email="maya@example.com",
+        role="user",
+        is_active=True,
+        is_superuser=False,
+    )
+    user_repository.get.return_value = db_obj
+    user_repository.get_by_email.return_value = build_user(
+        username="otro",
+        email="duplicado@example.com",
+    )
+
+    current_user = build_current_user(
+        user_id=db_obj.id,
+        is_superuser=False,
+        role="user",
+    )
+
+    user_in = FakeSchema(
+        username="maya",
+        email="duplicado@example.com",
+        password="NuevaClave1234",
+        first_name="Maya",
+        last_name="Pena",
+        role="user",
+        is_active=True,
+        is_superuser=False,
+    )
+
+    with pytest.raises(UserAlreadyExistsException):
+        await user_service.update_user(
+            db_session,
+            user_id=db_obj.id,
+            user_in=user_in,
+            current_user=current_user,
+        )    
