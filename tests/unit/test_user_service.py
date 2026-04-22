@@ -3,9 +3,7 @@ from types import SimpleNamespace
 from uuid import uuid4
 from unittest.mock import AsyncMock, MagicMock
 
-from app.core.exceptions.auth_exceptions import (
-    InsufficientPermissionsException,
-)
+from app.core.exceptions.auth_exceptions import InsufficientPermissionsException
 from app.core.exceptions.user_exceptions import (
     InvalidCredentialsException,
     PasswordMismatchException,
@@ -17,16 +15,9 @@ from app.core.exceptions.user_exceptions import (
 )
 from app.models.user import User
 from app.schemas.auth import CurrentUser
-from app.services.user_service import UserService
-from app.core.exceptions.auth_exceptions import InsufficientPermissionsException
-from app.core.exceptions.user_exceptions import (
-    InvalidCredentialsException,
-    PasswordMismatchException,
-    UserAlreadyActiveException,
-    UserAlreadyExistsException,
-    UserAlreadyInactiveException,
-)
 from app.schemas.user import PasswordChangeRequest, UserPartialUpdateRequest
+from app.services.user_service import UserService
+
 
 class FakeSchema:
     def __init__(self, **data):
@@ -204,7 +195,7 @@ async def test_update_user_success(user_service, user_repository, db_session, mo
         db_session,
         user_id=user.id,
         user_in=user_in,
-        current_user=current_user
+        current_user=current_user,
     )
 
     user_repository.update.assert_awaited_once()
@@ -237,7 +228,7 @@ async def test_update_user_raises_when_normal_user_modifies_privileged_fields(us
             db_session,
             user_id=user.id,
             user_in=user_in,
-            current_user=current_user
+            current_user=current_user,
         )
 
 
@@ -260,7 +251,7 @@ async def test_partial_update_user_success_for_non_privileged_fields(user_servic
         db_session,
         user_id=user.id,
         user_in=user_in,
-        current_user=current_user
+        current_user=current_user,
     )
 
     user_repository.update.assert_awaited_once()
@@ -287,7 +278,7 @@ async def test_partial_update_user_raises_when_normal_user_modifies_privileged_f
             db_session,
             user_id=user.id,
             user_in=user_in,
-            current_user=current_user
+            current_user=current_user,
         )
 
 
@@ -308,7 +299,7 @@ async def test_change_password_success(user_service, user_repository, db_session
     await user_service.change_password(
         db_session,
         user_id=user.id,
-        password_data=password_data
+        password_data=password_data,
     )
 
     user_repository.update.assert_awaited_once()
@@ -332,7 +323,7 @@ async def test_change_password_raises_when_current_password_is_invalid(user_serv
         await user_service.change_password(
             db_session,
             user_id=user.id,
-            password_data=password_data
+            password_data=password_data,
         )
 
 
@@ -352,7 +343,7 @@ async def test_change_password_raises_when_confirmation_does_not_match(user_serv
         await user_service.change_password(
             db_session,
             user_id=user.id,
-            password_data=password_data
+            password_data=password_data,
         )
 
 
@@ -366,7 +357,7 @@ async def test_delete_user_success(user_service, user_repository, db_session):
         db_session,
         user_id=user.id,
         deleted_by=uuid4(),
-        reason="Prueba"
+        reason="Prueba",
     )
 
     user_repository.soft_delete.assert_awaited_once()
@@ -414,6 +405,7 @@ async def test_deactivate_user_raises_when_already_inactive(user_service, user_r
 
     with pytest.raises(UserAlreadyInactiveException):
         await user_service.deactivate_user(db_session, user_id=user.id)
+
 
 @pytest.mark.asyncio
 async def test_ensure_no_privileged_self_update_allows_superuser(user_service):
@@ -647,7 +639,8 @@ async def test_deactivate_user_updates_when_user_is_active(
             "is_active": False,
             "deactivation_reason": "Suspensión temporal",
         },
-    )        
+    )
+
 
 @pytest.mark.asyncio
 async def test_update_user_raises_when_email_already_exists(
@@ -691,4 +684,50 @@ async def test_update_user_raises_when_email_already_exists(
             user_id=db_obj.id,
             user_in=user_in,
             current_user=current_user,
-        )    
+        )
+
+
+@pytest.mark.asyncio
+async def test_update_user_raises_when_username_already_exists(
+    user_service,
+    user_repository,
+    db_session,
+):
+    db_obj = build_user(
+        username="maya",
+        email="maya@example.com",
+        role="user",
+        is_active=True,
+        is_superuser=False,
+    )
+    user_repository.get.return_value = db_obj
+    user_repository.get_by_email.return_value = None
+    user_repository.get_by_username.return_value = build_user(
+        username="duplicado",
+        email="otro@example.com",
+    )
+
+    current_user = build_current_user(
+        user_id=db_obj.id,
+        is_superuser=False,
+        role="user",
+    )
+
+    user_in = FakeSchema(
+        username="duplicado",
+        email="maya@example.com",
+        password="NuevaClave1234",
+        first_name="Maya",
+        last_name="Pena",
+        role="user",
+        is_active=True,
+        is_superuser=False,
+    )
+
+    with pytest.raises(UserAlreadyExistsException):
+        await user_service.update_user(
+            db_session,
+            user_id=db_obj.id,
+            user_in=user_in,
+            current_user=current_user,
+        )
