@@ -1,12 +1,20 @@
 # FastAPI Users & Products JWT API
 
-API REST desarrollada con FastAPI para gestión de usuarios y productos, autenticación JWT, control de acceso por roles, auditoría, manejo de sesiones con refresh tokens, recuperación de contraseña, rate limiting, limpieza manual de tokens, migraciones con Alembic, CI con GitHub Actions y despliegue con Docker.
+API REST desarrollada con FastAPI para gestión de usuarios y productos, autenticación JWT, control de acceso por roles, auditoría, manejo de sesiones con refresh tokens, recuperación de contraseña, rate limiting, limpieza manual de tokens, migraciones con Alembic, CI con GitHub Actions, despliegue con Docker y publicación en Render.
 
 ## Descripción
 
 Este proyecto implementa una API backend con arquitectura por capas, pensada para crecimiento, mantenimiento y validación continua. Incluye módulos de usuarios, productos y autenticación, documentación interactiva con Swagger, observabilidad mediante logs técnicos, auditoría persistida en PostgreSQL, migraciones reproducibles con Alembic, pruebas automatizadas y control de sesiones del lado del servidor mediante refresh tokens persistidos, rotados y revocables.
 
 El desarrollo se realizó de forma incremental: primero la lógica de usuarios y productos, después autenticación y autorización, luego observabilidad y auditoría, más tarde la formalización del esquema con Alembic y CI, y finalmente el endurecimiento del flujo de sesión con rotación y revocación de refresh tokens, cierre global de sesiones, recuperación de contraseña, rate limiting en endpoints sensibles y limpieza manual de tokens obsoletos.
+
+## Demo desplegada
+
+La API se encuentra desplegada públicamente en Render.
+
+- Base URL: `https://fastapi-users-products-jwt-api.onrender.com`
+- Swagger UI: `https://fastapi-users-products-jwt-api.onrender.com/docs`
+- Health check: `https://fastapi-users-products-jwt-api.onrender.com/health`
 
 ## Vista de la documentación interactiva
 
@@ -131,6 +139,7 @@ La API incluye documentación interactiva con Swagger, lo que permite explorar e
 - pytest-mock
 - httpx
 - GitHub Actions
+- Render
 
 ## Arquitectura
 
@@ -217,8 +226,11 @@ docker/
 docs/
 ├── DEPLOY_CHECKLIST.md
 ├── QUICKSTART.md
-└── images/
-    └── swagger-ui.png
+├── images/
+│   └── swagger-ui.png
+└── postman/
+    ├── FastAPI_Users_Products_API.postman_collection.json
+    └── FastAPI_Users_Products_API.local_environment.json
 
 tests/
 ├── integration/
@@ -315,6 +327,21 @@ La configuración actual ejecuta las migraciones con Alembic antes de iniciar la
 * Swagger UI: `http://localhost:8000/docs`
 * Health check: `http://localhost:8000/health`
 
+## Despliegue en Render
+
+El proyecto puede desplegarse en Render usando una base PostgreSQL gestionada y un Web Service basado en Docker.
+
+Valores importantes usados en producción:
+
+* `DATABASE_URL` configurada desde la base PostgreSQL de Render
+* `ENVIRONMENT=production`
+* `DEBUG=False`
+* `PORT=10000`
+
+URL pública actual:
+
+* `https://fastapi-users-products-jwt-api.onrender.com`
+
 ## Ejecución local
 
 ```bash
@@ -338,6 +365,7 @@ python -m uvicorn app.main:app --reload
 * `POSTGRES_PORT`
 * `DATABASE_URL`
 * `APP_PORT`
+* `PORT`
 * `SECRET_KEY`
 * `ALGORITHM`
 * `ACCESS_TOKEN_EXPIRE_MINUTES`
@@ -456,6 +484,7 @@ Además del README, el repositorio incluye:
 * `docs/QUICKSTART.md` para arranque rápido del proyecto
 * `docs/DEPLOY_CHECKLIST.md` para validación previa a despliegue
 * `.github/PULL_REQUEST_TEMPLATE.md` para estandarizar futuros Pull Requests
+* colección y environment de Postman en `docs/postman/`
 
 ## CI
 
@@ -473,7 +502,7 @@ Este proyecto se distribuye bajo licencia MIT. Consulta el archivo `LICENSE` par
 
 ## Estado del proyecto
 
-El proyecto se encuentra en un estado funcional y consolidado. La base principal del backend ya está implementada, cubierta con pruebas automatizadas y documentada. Los pendientes restantes son incrementales y no bloquean el uso del proyecto como muestra técnica ni como base para seguir ampliando funcionalidades.
+El proyecto se encuentra en un estado funcional y consolidado. La base principal del backend ya está implementada, cubierta con pruebas automatizadas, desplegada públicamente y documentada. Los pendientes restantes son incrementales y no bloquean el uso del proyecto como muestra técnica ni como base para seguir ampliando funcionalidades.
 
 ## Siguientes pasos
 
@@ -486,5 +515,4 @@ El proyecto se encuentra en un estado funcional y consolidado. La base principal
 
 Prashanti Peña Guevara
 
-Proyecto backend orientado a construir una API escalable, mantenible y más cercana a un entorno real de desarrollo.
-
+Proyecto backend orientado a construir una API escalable y mantenible 

@@ -4,7 +4,7 @@
   "values": [
     {
       "key": "base_url",
-      "value": "http://localhost:8000/api/v1",
+      "value": "https://fastapi-users-products-jwt-api.onrender.com/api/v1",
       "type": "default",
       "enabled": true
     },
