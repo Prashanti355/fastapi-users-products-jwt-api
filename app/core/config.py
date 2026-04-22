@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     RATE_LIMIT_DEFAULTS: list[str] = []
     RATE_LIMIT_LOGIN: str = "200/minute"
     RATE_LIMIT_REGISTER: str = "100/minute"
+
+    LOG_DIR: str = "logs"
     
 
     model_config = SettingsConfigDict(
