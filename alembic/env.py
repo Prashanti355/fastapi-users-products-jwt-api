@@ -1,4 +1,5 @@
 from logging.config import fileConfig
+import asyncio
 import os
 
 from sqlalchemy import pool
@@ -8,21 +9,23 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 from sqlmodel import SQLModel
 
-# Importa los modelos para registrarlos en SQLModel.metadata
 import app.models  # noqa: F401
 
 config = context.config
 
-POSTGRES_USER = os.getenv("POSTGRES_USER", "fastapi_app")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "CHANGE_ME")
-POSTGRES_DB = os.getenv("POSTGRES_DB", "fastapi_db")
-POSTGRES_HOST = os.getenv("POSTGRES_HOST", "db")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-DATABASE_URL = (
-    f"postgresql+asyncpg://{POSTGRES_USER}:{POSTGRES_PASSWORD}"
-    f"@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
-)
+if not DATABASE_URL:
+    POSTGRES_USER = os.getenv("POSTGRES_USER", "fastapi_app")
+    POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "CHANGE_ME")
+    POSTGRES_DB = os.getenv("POSTGRES_DB", "fastapi_db")
+    POSTGRES_HOST = os.getenv("POSTGRES_HOST", "db")
+    POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+
+    DATABASE_URL = (
+        f"postgresql+asyncpg://{POSTGRES_USER}:{POSTGRES_PASSWORD}"
+        f"@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+    )
 
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
@@ -73,7 +76,6 @@ async def run_async_migrations() -> None:
 
 
 def run_migrations_online() -> None:
-    import asyncio
     asyncio.run(run_async_migrations())
 
 

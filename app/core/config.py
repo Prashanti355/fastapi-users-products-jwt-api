@@ -13,10 +13,10 @@ class Settings(BaseSettings):
 
     API_V1_STR: str = "/api/v1"
 
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str
-    POSTGRES_HOST: str
+    POSTGRES_USER: Optional[str] = None
+    POSTGRES_PASSWORD: Optional[str] = None
+    POSTGRES_DB: Optional[str] = None
+    POSTGRES_HOST: Optional[str] = None
     POSTGRES_PORT: int = 5432
 
     DATABASE_URL: Optional[str] = None
@@ -41,7 +41,6 @@ class Settings(BaseSettings):
     RATE_LIMIT_REGISTER: str = "100/minute"
 
     LOG_DIR: str = "logs"
-    
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -68,15 +67,6 @@ class Settings(BaseSettings):
             return [item.strip() for item in value.split(",") if item.strip()]
         return value
 
-    @model_validator(mode="after")
-    def build_database_url(self):
-        if not self.DATABASE_URL:
-            self.DATABASE_URL = (
-                f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
-                f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-            )
-        return self
-    
     @field_validator("RATE_LIMIT_DEFAULTS", mode="before")
     @classmethod
     def parse_rate_limit_defaults(cls, value):
@@ -87,8 +77,31 @@ class Settings(BaseSettings):
             if value.startswith("["):
                 return json.loads(value)
             return [item.strip() for item in value.split(",") if item.strip()]
-        return value    
+        return value
 
+    @model_validator(mode="after")
+    def build_database_url(self):
+        if self.DATABASE_URL:
+            return self
+
+        required_fields = [
+            self.POSTGRES_USER,
+            self.POSTGRES_PASSWORD,
+            self.POSTGRES_DB,
+            self.POSTGRES_HOST,
+        ]
+
+        if all(required_fields):
+            self.DATABASE_URL = (
+                f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+                f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+            )
+            return self
+
+        raise ValueError(
+            "Debe definir DATABASE_URL o proporcionar POSTGRES_USER, POSTGRES_PASSWORD, "
+            "POSTGRES_DB y POSTGRES_HOST."
+        )
 
 
 settings = Settings()
