@@ -18,7 +18,15 @@ from app.core.exceptions.user_exceptions import (
 from app.models.user import User
 from app.schemas.auth import CurrentUser
 from app.services.user_service import UserService
-
+from app.core.exceptions.auth_exceptions import InsufficientPermissionsException
+from app.core.exceptions.user_exceptions import (
+    InvalidCredentialsException,
+    PasswordMismatchException,
+    UserAlreadyActiveException,
+    UserAlreadyExistsException,
+    UserAlreadyInactiveException,
+)
+from app.schemas.user import PasswordChangeRequest, UserPartialUpdateRequest
 
 class FakeSchema:
     def __init__(self, **data):
@@ -406,3 +414,237 @@ async def test_deactivate_user_raises_when_already_inactive(user_service, user_r
 
     with pytest.raises(UserAlreadyInactiveException):
         await user_service.deactivate_user(db_session, user_id=user.id)
+
+@pytest.mark.asyncio
+async def test_ensure_no_privileged_self_update_allows_superuser(user_service):
+    db_obj = build_user(is_active=True, is_superuser=False, role="user")
+    current_user = CurrentUser(
+        id=db_obj.id,
+        username="admin",
+        email="admin@example.com",
+        role="admin",
+        is_superuser=True,
+        is_active=True,
+    )
+
+    user_service._ensure_no_privileged_self_update(
+        db_obj=db_obj,
+        update_data={
+            "is_active": False,
+            "is_superuser": True,
+            "role": "admin",
+        },
+        current_user=current_user,
+    )
+
+
+@pytest.mark.asyncio
+async def test_partial_update_user_raises_when_email_already_exists(
+    user_service,
+    user_repository,
+    db_session,
+):
+    db_obj = build_user(email="original@example.com", username="maya")
+    user_repository.get.return_value = db_obj
+    user_repository.get_by_email.return_value = build_user(
+        email="duplicado@example.com",
+        username="otro",
+    )
+
+    user_in = UserPartialUpdateRequest(email="duplicado@example.com")
+
+    with pytest.raises(UserAlreadyExistsException):
+        await user_service.partial_update_user(
+            db_session,
+            user_id=db_obj.id,
+            user_in=user_in,
+        )
+
+
+@pytest.mark.asyncio
+async def test_partial_update_user_raises_when_username_already_exists(
+    user_service,
+    user_repository,
+    db_session,
+):
+    db_obj = build_user(email="maya@example.com", username="maya")
+    user_repository.get.return_value = db_obj
+    user_repository.get_by_email.return_value = None
+    user_repository.get_by_username.return_value = build_user(
+        email="otro@example.com",
+        username="duplicado",
+    )
+
+    user_in = UserPartialUpdateRequest(username="duplicado")
+
+    with pytest.raises(UserAlreadyExistsException):
+        await user_service.partial_update_user(
+            db_session,
+            user_id=db_obj.id,
+            user_in=user_in,
+        )
+
+
+@pytest.mark.asyncio
+async def test_partial_update_user_hashes_password_when_present(
+    user_service,
+    user_repository,
+    db_session,
+    mocker,
+):
+    db_obj = build_user(password="old_hash", email="maya@example.com", username="maya")
+    user_repository.get.return_value = db_obj
+    user_repository.get_by_email.return_value = None
+    user_repository.get_by_username.return_value = None
+    user_repository.update.return_value = db_obj
+
+    mocker.patch("app.services.user_service.get_password_hash", return_value="new_hash")
+
+    user_in = UserPartialUpdateRequest(password="NuevaClave1234")
+
+    await user_service.partial_update_user(
+        db_session,
+        user_id=db_obj.id,
+        user_in=user_in,
+    )
+
+    user_repository.update.assert_awaited_once()
+    update_payload = user_repository.update.await_args.kwargs["obj_in"]
+    assert update_payload["password"] == "new_hash"
+
+
+@pytest.mark.asyncio
+async def test_change_password_raises_when_current_password_is_invalid(
+    user_service,
+    user_repository,
+    db_session,
+    mocker,
+):
+    db_obj = build_user(password="hashed_pw")
+    user_repository.get.return_value = db_obj
+
+    mocker.patch("app.services.user_service.verify_password", return_value=False)
+
+    password_data = PasswordChangeRequest(
+        current_password="Incorrecta123",
+        new_password="NuevaClave1234",
+        confirm_password="NuevaClave1234",
+    )
+
+    with pytest.raises(InvalidCredentialsException):
+        await user_service.change_password(
+            db_session,
+            user_id=db_obj.id,
+            password_data=password_data,
+        )
+
+
+@pytest.mark.asyncio
+async def test_change_password_raises_when_new_password_and_confirm_do_not_match(
+    user_service,
+    user_repository,
+    db_session,
+    mocker,
+):
+    db_obj = build_user(password="hashed_pw")
+    user_repository.get.return_value = db_obj
+
+    mocker.patch("app.services.user_service.verify_password", return_value=True)
+
+    password_data = PasswordChangeRequest(
+        current_password="ClaveActual123",
+        new_password="NuevaClave1234",
+        confirm_password="OtraClave1234",
+    )
+
+    with pytest.raises(PasswordMismatchException):
+        await user_service.change_password(
+            db_session,
+            user_id=db_obj.id,
+            password_data=password_data,
+        )
+
+
+@pytest.mark.asyncio
+async def test_delete_user_calls_soft_delete_with_deleted_by_and_reason(
+    user_service,
+    user_repository,
+    db_session,
+):
+    db_obj = build_user()
+    deleted_by = uuid4()
+
+    user_repository.get.return_value = db_obj
+    user_repository.soft_delete.return_value = db_obj
+
+    result = await user_service.delete_user(
+        db_session,
+        user_id=db_obj.id,
+        deleted_by=deleted_by,
+        reason="Incumplimiento",
+    )
+
+    assert result == db_obj
+    user_repository.soft_delete.assert_awaited_once_with(
+        db_session,
+        user_id=db_obj.id,
+        deleted_by=deleted_by,
+        deactivation_reason="Incumplimiento",
+    )
+
+
+@pytest.mark.asyncio
+async def test_activate_user_updates_when_user_is_inactive(
+    user_service,
+    user_repository,
+    db_session,
+):
+    db_obj = build_user(is_active=False)
+    updated_user = build_user(is_active=True)
+
+    user_repository.get.return_value = db_obj
+    user_repository.update.return_value = updated_user
+
+    result = await user_service.activate_user(
+        db_session,
+        user_id=db_obj.id,
+    )
+
+    assert result == updated_user
+    user_repository.update.assert_awaited_once_with(
+        db_session,
+        db_obj=db_obj,
+        obj_in={
+            "is_active": True,
+            "deactivation_reason": None,
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_deactivate_user_updates_when_user_is_active(
+    user_service,
+    user_repository,
+    db_session,
+):
+    db_obj = build_user(is_active=True)
+    updated_user = build_user(is_active=False)
+
+    user_repository.get.return_value = db_obj
+    user_repository.update.return_value = updated_user
+
+    result = await user_service.deactivate_user(
+        db_session,
+        user_id=db_obj.id,
+        reason="Suspensión temporal",
+    )
+
+    assert result == updated_user
+    user_repository.update.assert_awaited_once_with(
+        db_session,
+        db_obj=db_obj,
+        obj_in={
+            "is_active": False,
+            "deactivation_reason": "Suspensión temporal",
+        },
+    )        
