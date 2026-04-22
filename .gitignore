@@ -5,6 +5,11 @@ __pycache__/
 *.pyd
 *.so
 
+# Empaquetado / build
+build/
+dist/
+*.egg-info/
+
 # Entornos virtuales
 .venv/
 venv/
@@ -13,6 +18,7 @@ env/
 # Variables de entorno
 .env
 .env.*
+!.env.example
 
 # IDEs
 .vscode/
@@ -25,7 +31,9 @@ logs/
 # Pytest / coverage
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
+coverage.xml
 .mypy_cache/
 .ruff_cache/
 
