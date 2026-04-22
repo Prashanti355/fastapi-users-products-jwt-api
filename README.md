@@ -86,7 +86,7 @@ El desarrollo se realizó de forma incremental: primero la lógica de usuarios y
 - Auditoría persistida en PostgreSQL
 - Endpoint protegido `GET /api/v1/audit-logs`
 - Correlación entre logs técnicos y auditoría mediante `request_id`
-- Auditoría de eventos sensibles como login, refresh, logout, logout-all, forgot-password y reset-password
+- Auditoría de eventos sensibles como `login`, `refresh_token`, `logout`, `logout_all`, `forgot_password`, `reset_password` y operaciones administrativas sobre usuarios y productos
 
 ### Migraciones y persistencia
 
@@ -101,7 +101,8 @@ El desarrollo se realizó de forma incremental: primero la lógica de usuarios y
 - Pruebas de integración
 - Ejecución reproducible dentro de Docker
 - CI con GitHub Actions para migraciones y pruebas automáticas
-- **116 pruebas aprobadas**
+- **329 pruebas aprobadas**
+- **98% de cobertura global**
 
 ## Tecnologías utilizadas
 
@@ -120,8 +121,9 @@ El desarrollo se realizó de forma incremental: primero la lógica de usuarios y
 - Swagger / OpenAPI
 - pytest
 - pytest-asyncio
-- httpx
+- pytest-cov
 - pytest-mock
+- httpx
 - GitHub Actions
 
 ## Arquitectura
@@ -412,9 +414,16 @@ Ejecutar toda la batería:
 docker compose exec api pytest tests/unit tests/integration -q
 ```
 
+Con reporte de cobertura:
+
+```bash
+docker compose exec api pytest tests/unit tests/integration --cov=app --cov-report=term-missing
+```
+
 Estado actual:
 
-* **116 pruebas aprobadas**
+* **329 pruebas aprobadas**
+* **98% de cobertura global**
 
 ## CI
 
@@ -448,11 +457,10 @@ Actualmente el proyecto incluye:
 * CI con GitHub Actions
 * documentación interactiva
 * pruebas unitarias e integración
-* despliegue con Docker
+* cobertura automatizada de pruebas
 
 ## Siguientes pasos
 
-* cobertura de pruebas
 * envío real de correo para recuperación de contraseña
 * ampliación de módulos de negocio
 * endurecimiento adicional de seguridad sobre autenticación y abuso
@@ -462,4 +470,3 @@ Actualmente el proyecto incluye:
 Prashanti Peña Guevara
 
 Proyecto backend orientado a construir una API escalable, mantenible y más cercana a un entorno real de desarrollo.
-
