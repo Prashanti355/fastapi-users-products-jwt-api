@@ -15,8 +15,9 @@ COPY requirements.txt requirements-dev.txt ./
 RUN pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt
 
 COPY ./app /home/python/app
-COPY ./tests /home/python/tests
-COPY ./.env /home/python/.env
+COPY ./alembic /home/python/alembic
+COPY ./alembic.ini /home/python/alembic.ini
 
+EXPOSE 10000
 
-EXPOSE 8000
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}"]
