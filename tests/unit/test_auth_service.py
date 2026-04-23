@@ -77,6 +77,13 @@ def password_reset_token_service():
     service.mark_as_used = AsyncMock()
     return service
 
+@pytest.fixture
+def email_service():
+    service = MagicMock()
+    service.is_configured = MagicMock(return_value=True)
+    service.send_password_reset_email = MagicMock()
+    return service
+
 
 @pytest.fixture
 def auth_service_full(
@@ -84,12 +91,14 @@ def auth_service_full(
     token_service,
     refresh_token_service,
     password_reset_token_service,
+    email_service,
 ):
     return AuthService(
         user_repository,
         token_service,
         refresh_token_service=refresh_token_service,
         password_reset_token_service=password_reset_token_service,
+        email_service=email_service,
     )
 
 
@@ -451,14 +460,24 @@ async def test_forgot_password_returns_none_when_user_is_deleted(
 
 
 @pytest.mark.asyncio
-async def test_forgot_password_creates_token_for_valid_user(
+async def test_forgot_password_creates_token_and_sends_email_for_valid_user(
     auth_service_full,
     user_repository,
     password_reset_token_service,
+    email_service,
     db_session,
+    mocker,
 ):
     user = build_user()
+    db_token = SimpleNamespace(token="reset_token_123")
+
     user_repository.get_by_email.return_value = user
+    password_reset_token_service.create_token.return_value = db_token
+
+    mocker.patch(
+        "app.services.auth_service.settings.FRONTEND_RESET_PASSWORD_URL",
+        "https://frontend.example.com/reset-password",
+    )
 
     result = await auth_service_full.forgot_password(
         db_session,
@@ -470,6 +489,11 @@ async def test_forgot_password_creates_token_for_valid_user(
         db_session,
         user_id=user.id,
         expires_in_minutes=30,
+    )
+    email_service.send_password_reset_email.assert_called_once_with(
+        to_email=user.email,
+        reset_link="https://frontend.example.com/reset-password?token=reset_token_123",
+        username=user.username,
     )
 
 
@@ -583,3 +607,81 @@ async def test_reset_password_success_hashes_password_marks_token_used_and_revok
         user_id=user.id,
         revoke_reason="password_reset",
     )
+
+@pytest.mark.asyncio
+async def test_forgot_password_creates_token_but_does_not_send_email_when_email_service_is_not_configured(
+    user_repository,
+    token_service,
+    refresh_token_service,
+    password_reset_token_service,
+    db_session,
+    mocker,
+):
+    email_service = MagicMock()
+    email_service.is_configured.return_value = False
+    email_service.send_password_reset_email = MagicMock()
+
+    service = AuthService(
+        user_repository,
+        token_service,
+        refresh_token_service=refresh_token_service,
+        password_reset_token_service=password_reset_token_service,
+        email_service=email_service,
+    )
+
+    user = build_user()
+    db_token = SimpleNamespace(token="reset_token_123")
+
+    user_repository.get_by_email.return_value = user
+    password_reset_token_service.create_token.return_value = db_token
+
+    mocker.patch(
+        "app.services.auth_service.settings.FRONTEND_RESET_PASSWORD_URL",
+        "https://frontend.example.com/reset-password",
+    )
+
+    result = await service.forgot_password(
+        db_session,
+        email=user.email,
+    )
+
+    assert result == user
+    password_reset_token_service.create_token.assert_awaited_once_with(
+        db_session,
+        user_id=user.id,
+        expires_in_minutes=30,
+    )
+    email_service.send_password_reset_email.assert_not_called()
+
+@pytest.mark.asyncio
+async def test_forgot_password_creates_token_but_does_not_send_email_when_frontend_url_is_missing(
+    auth_service_full,
+    user_repository,
+    password_reset_token_service,
+    email_service,
+    db_session,
+    mocker,
+):
+    user = build_user()
+    db_token = SimpleNamespace(token="reset_token_123")
+
+    user_repository.get_by_email.return_value = user
+    password_reset_token_service.create_token.return_value = db_token
+
+    mocker.patch(
+        "app.services.auth_service.settings.FRONTEND_RESET_PASSWORD_URL",
+        None,
+    )
+
+    result = await auth_service_full.forgot_password(
+        db_session,
+        email=user.email,
+    )
+
+    assert result == user
+    password_reset_token_service.create_token.assert_awaited_once_with(
+        db_session,
+        user_id=user.id,
+        expires_in_minutes=30,
+    )
+    email_service.send_password_reset_email.assert_not_called()        
