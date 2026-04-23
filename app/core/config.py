@@ -42,6 +42,10 @@ class Settings(BaseSettings):
 
     LOG_DIR: str = "logs"
 
+    RESEND_API_KEY: Optional[str] = None
+    EMAIL_FROM: Optional[str] = None
+    FRONTEND_RESET_PASSWORD_URL: Optional[str] = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,
