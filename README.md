@@ -6,7 +6,7 @@ API REST desarrollada con FastAPI para gestión de usuarios y productos, autenti
 
 Este proyecto implementa una API backend con arquitectura por capas, pensada para crecimiento, mantenimiento y validación continua. Incluye módulos de usuarios, productos y autenticación, documentación interactiva con Swagger, observabilidad mediante logs técnicos, auditoría persistida en PostgreSQL, migraciones reproducibles con Alembic, pruebas automatizadas y control de sesiones del lado del servidor mediante refresh tokens persistidos, rotados y revocables.
 
-El desarrollo se realizó de forma incremental: primero la lógica de usuarios y productos, después autenticación y autorización, luego observabilidad y auditoría, más tarde la formalización del esquema con Alembic y CI, y finalmente el endurecimiento del flujo de sesión con rotación y revocación de refresh tokens, cierre global de sesiones, recuperación de contraseña, rate limiting en endpoints sensibles y limpieza manual de tokens obsoletos.
+El desarrollo se realizó de forma incremental: primero la lógica de usuarios y productos, después autenticación y autorización, luego observabilidad y auditoría, más tarde la formalización del esquema con Alembic y CI, y finalmente el endurecimiento del flujo de sesión con rotación y revocación de refresh tokens, cierre global de sesiones, recuperación de contraseña, rate limiting en endpoints sensibles, limpieza manual de tokens obsoletos y envío real de correos de recuperación.
 
 ## Demo desplegada
 
@@ -78,10 +78,12 @@ La API incluye documentación interactiva con Swagger, lo que permite explorar e
 
 - Persistencia de `password_reset_tokens` en PostgreSQL
 - Generación de token de recuperación
+- Envío real de correos de recuperación mediante Resend
 - Validación de token válido, no usado y no expirado
 - Marcado del token como usado después del restablecimiento
 - Restablecimiento de contraseña con revocación de refresh tokens activos
-- Pruebas de integración para el flujo de recuperación
+- El backend ya soporta el flujo completo, aunque todavía no existe una interfaz final dedicada para consumir el enlace de recuperación
+- Pruebas funcionales del flujo realizadas sobre el servicio desplegado
 
 ### Protección contra abuso
 
@@ -140,6 +142,7 @@ La API incluye documentación interactiva con Swagger, lo que permite explorar e
 - httpx
 - GitHub Actions
 - Render
+- Resend
 
 ## Arquitectura
 
@@ -202,6 +205,7 @@ app/
 │   ├── __init__.py
 │   ├── audit_log_service.py
 │   ├── auth_service.py
+│   ├── email_service.py
 │   ├── password_reset_token_service.py
 │   ├── product_service.py
 │   ├── refresh_token_service.py
@@ -337,6 +341,9 @@ Valores importantes usados en producción:
 * `ENVIRONMENT=production`
 * `DEBUG=False`
 * `PORT=10000`
+* `RESEND_API_KEY`
+* `EMAIL_FROM`
+* `FRONTEND_RESET_PASSWORD_URL`
 
 URL pública actual:
 
@@ -380,6 +387,9 @@ python -m uvicorn app.main:app --reload
 * `RATE_LIMIT_DEFAULTS`
 * `RATE_LIMIT_LOGIN`
 * `RATE_LIMIT_REGISTER`
+* `RESEND_API_KEY`
+* `EMAIL_FROM`
+* `FRONTEND_RESET_PASSWORD_URL`
 
 ## Logs técnicos
 
@@ -502,17 +512,18 @@ Este proyecto se distribuye bajo licencia MIT. Consulta el archivo `LICENSE` par
 
 ## Estado del proyecto
 
-El proyecto se encuentra en un estado funcional y consolidado. La base principal del backend ya está implementada, cubierta con pruebas automatizadas, desplegada públicamente y documentada. Los pendientes restantes son incrementales y no bloquean el uso del proyecto como muestra técnica ni como base para seguir ampliando funcionalidades.
+El proyecto se encuentra en un estado funcional y consolidado. La base principal del backend ya está implementada, cubierta con pruebas automatizadas, desplegada públicamente y documentada. El backend ya genera tokens de recuperación, envía correos reales y soporta el restablecimiento de contraseña vía endpoint. La pieza pendiente en esa parte es una interfaz final dedicada para consumir el enlace de recuperación.
 
 ## Siguientes pasos
 
-* integración de envío real de correo para recuperación de contraseña
+* interfaz dedicada para consumir el enlace de recuperación de contraseña
 * ampliación de módulos de negocio
 * endurecimiento adicional de seguridad sobre autenticación y abuso
 * refinamientos menores de observabilidad y despliegue
+* mayor cobertura automatizada del flujo de correo con mocks
 
 ## Autor
 
 Prashanti Peña Guevara
 
-Proyecto backend orientado a construir una API escalable y mantenible 
+Proyecto backend orientado a construir una API escalable y mantenible.
