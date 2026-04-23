@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
+from app.dependencies import get_user_repository
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.rate_limit import limiter
@@ -12,6 +12,7 @@ from app.dependencies import (
     get_audit_log_service,
     get_auth_service,
     get_current_active_user,
+    get_current_superuser,
     get_request_id,
     get_token_service,
     get_user_repository,
@@ -30,7 +31,9 @@ from app.schemas.response import ApiResponse, ApiResponseSimple
 from app.services.audit_log_service import AuditLogService
 from app.services.auth_service import AuthService
 from app.services.token_service import TokenService
-
+from app.services.password_reset_token_service import PasswordResetTokenService
+from app.dependencies import get_password_reset_token_service
+from app.schemas.auth import PasswordResetDebugResult
 
 router = APIRouter()
 
@@ -258,6 +261,52 @@ async def reset_password(
         resultado={},
     )
 
+@router.get(
+    "/debug-last-reset-token",
+    response_model=ApiResponse[PasswordResetDebugResult],
+    status_code=status.HTTP_200_OK,
+    summary="Obtener último token de recuperación",
+    description="Devuelve el último token de recuperación de un usuario. Solo para depuración y pruebas manuales.",
+)
+async def debug_last_reset_token(
+    email: str,
+    db: AsyncSession = Depends(get_db),
+    user_repository: UserRepository = Depends(get_user_repository),
+    password_reset_token_service: PasswordResetTokenService = Depends(
+        get_password_reset_token_service
+    ),
+    current_user: CurrentUser = Depends(get_current_superuser),
+):
+    user = await user_repository.get_by_email(
+        db,
+        email=email,
+    )
+
+    if user is None:
+        raise InvalidTokenException(
+            message="No existe un usuario con ese correo."
+        )
+
+    db_token = await password_reset_token_service.get_latest_token_by_user_id(
+        db,
+        user_id=user.id,
+    )
+
+    if db_token is None:
+        raise InvalidTokenException(
+            message="Ese usuario no tiene tokens de recuperación."
+        )
+
+    return ApiResponse[PasswordResetDebugResult](
+        codigo=200,
+        mensaje="Último token de recuperación obtenido correctamente.",
+        resultado=PasswordResetDebugResult(
+            email=user.email,
+            token=db_token.token,
+            expires_at=db_token.expires_at,
+            used_at=db_token.used_at,
+        ),
+    )
 
 @router.get(
     "/me",

@@ -117,7 +117,7 @@ La API incluye documentación interactiva con Swagger, lo que permite explorar e
 - Pruebas de integración
 - Ejecución reproducible dentro de Docker
 - CI con GitHub Actions para migraciones y pruebas automáticas
-- **329 pruebas aprobadas**
+- **336 pruebas aprobadas**
 - **98% de cobertura global**
 
 ## Tecnologías utilizadas

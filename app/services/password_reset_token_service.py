@@ -70,3 +70,14 @@ class PasswordResetTokenService:
             db,
             password_reset_token=password_reset_token,
         )
+    
+    async def get_latest_token_by_user_id(
+        self,
+        db: AsyncSession,
+        *,
+        user_id,
+    ) -> PasswordResetToken | None:
+        return await self.repository.get_latest_by_user_id(
+            db,
+            user_id=user_id,
+        )    
