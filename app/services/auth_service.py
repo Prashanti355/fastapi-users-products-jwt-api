@@ -24,6 +24,8 @@ from app.schemas.auth import (
     PublicRegisterRequest,
     TokenResponse,
 )
+from app.core.config import settings
+from app.services.email_service import EmailService
 
 from app.services.password_reset_token_service import PasswordResetTokenService
 
@@ -41,11 +43,13 @@ class AuthService:
         token_service: TokenService,
         refresh_token_service=None,
         password_reset_token_service: PasswordResetTokenService | None = None,
+        email_service: EmailService | None = None,
     ):
         self.user_repo = user_repository
         self.token_service = token_service
         self.refresh_token_service = refresh_token_service
         self.password_reset_token_service = password_reset_token_service
+        self.email_service = email_service
 
     async def _store_refresh_token_if_enabled(
         self,
@@ -343,11 +347,45 @@ class AuthService:
         if self.password_reset_token_service is None:
             return None
 
-        await self.password_reset_token_service.create_token(
+        db_token = await self.password_reset_token_service.create_token(
             db,
             user_id=user.id,
             expires_in_minutes=30,
         )
+
+        if (
+            self.email_service is not None
+            and self.email_service.is_configured()
+            and settings.FRONTEND_RESET_PASSWORD_URL
+            and user.email
+        ):
+            reset_link = (
+                f"{settings.FRONTEND_RESET_PASSWORD_URL}?token={db_token.token}"
+            )
+
+            try:
+                result = self.email_service.send_password_reset_email(
+                    to_email=user.email,
+                    reset_link=reset_link,
+                    username=user.username,
+                )
+                print("EMAIL_ENVIADO_OK", result)
+            except Exception as exc:
+                print("EMAIL_ENVIO_ERROR", repr(exc))
+        else:
+            print(
+                "EMAIL_NO_ENVIADO",
+                {
+                    "email_service_exists": self.email_service is not None,
+                    "email_service_configured": (
+                        self.email_service.is_configured()
+                        if self.email_service is not None
+                        else False
+                    ),
+                    "frontend_reset_password_url": settings.FRONTEND_RESET_PASSWORD_URL,
+                    "user_email": user.email,
+                },
+            )
 
         return user
 

@@ -15,6 +15,13 @@ config = context.config
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgresql://",
+        "postgresql+asyncpg://",
+        1,
+    )
+
 if not DATABASE_URL:
     POSTGRES_USER = os.getenv("POSTGRES_USER", "fastapi_app")
     POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "CHANGE_ME")
@@ -82,4 +89,4 @@ def run_migrations_online() -> None:
 if context.is_offline_mode():
     run_migrations_offline()
 else:
-    run_migrations_online()
+    run_migrations_online()  

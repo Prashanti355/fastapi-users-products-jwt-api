@@ -5,24 +5,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.exceptions.auth_exceptions import InsufficientPermissionsException
 from app.repositories.audit_log_repository import AuditLogRepository
+from app.repositories.password_reset_token_repository import (
+    PasswordResetTokenRepository,
+)
 from app.repositories.product_repository import ProductRepository
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import CurrentUser
 from app.services.audit_log_service import AuditLogService
 from app.services.auth_service import AuthService
+from app.services.email_service import EmailService
+from app.services.password_reset_token_service import (
+    PasswordResetTokenService,
+)
 from app.services.product_service import ProductService
 from app.services.refresh_token_service import RefreshTokenService
 from app.services.token_service import TokenService
 from app.services.user_service import UserService
-from app.repositories.refresh_token_repository import RefreshTokenRepository
-from app.services.refresh_token_service import RefreshTokenService
-from app.repositories.password_reset_token_repository import (
-    PasswordResetTokenRepository,
-)
-from app.services.password_reset_token_service import (
-    PasswordResetTokenService,
-)
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -44,8 +43,16 @@ async def get_refresh_token_repository() -> RefreshTokenRepository:
     return RefreshTokenRepository()
 
 
+def get_password_reset_token_repository() -> PasswordResetTokenRepository:
+    return PasswordResetTokenRepository()
+
+
 async def get_token_service() -> TokenService:
     return TokenService()
+
+
+def get_email_service() -> EmailService:
+    return EmailService()
 
 
 async def get_user_service(
@@ -71,9 +78,6 @@ async def get_refresh_token_service(
 ) -> RefreshTokenService:
     return RefreshTokenService(repository)
 
-def get_password_reset_token_repository() -> PasswordResetTokenRepository:
-    return PasswordResetTokenRepository()
-
 
 def get_password_reset_token_service(
     repository: PasswordResetTokenRepository = Depends(
@@ -82,6 +86,7 @@ def get_password_reset_token_service(
 ) -> PasswordResetTokenService:
     return PasswordResetTokenService(repository)
 
+
 def get_auth_service(
     user_repository: UserRepository = Depends(get_user_repository),
     token_service: TokenService = Depends(get_token_service),
@@ -89,13 +94,16 @@ def get_auth_service(
     password_reset_token_service: PasswordResetTokenService = Depends(
         get_password_reset_token_service
     ),
+    email_service: EmailService = Depends(get_email_service),
 ) -> AuthService:
     return AuthService(
         user_repository=user_repository,
         token_service=token_service,
         refresh_token_service=refresh_token_service,
         password_reset_token_service=password_reset_token_service,
+        email_service=email_service,
     )
+
 
 async def get_current_active_user(
     db: AsyncSession = Depends(get_db),
@@ -117,14 +125,3 @@ async def get_current_superuser(
 
 def get_request_id(request: Request) -> str | None:
     return getattr(request.state, "request_id", None)
-
-async def get_refresh_token_repository() -> RefreshTokenRepository:
-    return RefreshTokenRepository()
-
-
-async def get_refresh_token_service(
-    repository: RefreshTokenRepository = Depends(get_refresh_token_repository),
-) -> RefreshTokenService:
-    return RefreshTokenService(repository)
-
-
