@@ -33,7 +33,7 @@ jobs:
 
     env:
       PROJECT_NAME: FastAPI Users & Products JWT API
-      VERSION: 1.0.0
+      VERSION: 3.0.0
       DEBUG: "false"
       ENVIRONMENT: testing
       API_V1_STR: /api/v1
@@ -43,7 +43,6 @@ jobs:
       POSTGRES_DB: fastapi_db
       POSTGRES_HOST: 127.0.0.1
       POSTGRES_PORT: 5432
-
       DATABASE_URL: postgresql+asyncpg://fastapi_app:fastapi_password@127.0.0.1:5432/fastapi_db
 
       APP_PORT: 8000
@@ -56,6 +55,17 @@ jobs:
       DEFAULT_PAGE_SIZE: 10
       MAX_PAGE_SIZE: 100
       BACKEND_CORS_ORIGINS: '["http://localhost:8000","http://localhost:5173"]'
+
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_STORAGE_URI: memory://
+      RATE_LIMIT_HEADERS_ENABLED: "true"
+      RATE_LIMIT_DEFAULTS: '[]'
+      RATE_LIMIT_LOGIN: 5/minute
+      RATE_LIMIT_REGISTER: 5/minute
+
+      RESEND_API_KEY: test_resend_key
+      EMAIL_FROM: Acme <onboarding@resend.dev>
+      FRONTEND_RESET_PASSWORD_URL: http://localhost:3000/reset-password
 
       PYTHONPATH: .
       LOG_DIR: logs
@@ -70,6 +80,9 @@ jobs:
           python-version: "3.12"
           cache: "pip"
 
+      - name: Prepare runtime directories
+        run: mkdir -p logs
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -77,6 +90,9 @@ jobs:
 
       - name: Run database migrations
         run: alembic upgrade head
+
+      - name: Check current migration
+        run: alembic current
 
       - name: Verify schema after migrations
         run: |
@@ -93,13 +109,21 @@ jobs:
                   tables = [row[0] for row in result]
                   print("Tables in public schema:", tables)
 
-                  required = {"alembic_version", "audit_logs", "products", "users"}
+                  required = {
+                      "alembic_version",
+                      "audit_logs",
+                      "products",
+                      "users",
+                      "refresh_tokens",
+                      "password_reset_tokens",
+                  }
                   missing = required - set(tables)
                   if missing:
                       raise SystemExit(f"Missing tables after migrations: {sorted(missing)}")
 
           asyncio.run(main())
           PY
+
       - name: Run format check
         run: python -m black --check app tests
 
@@ -108,6 +132,6 @@ jobs:
 
       - name: Run tests
         run: python -m pytest tests/unit tests/integration -q
-        
+
       - name: Run coverage
         run: python -m pytest tests/unit tests/integration --cov=app --cov-report=term-missing
