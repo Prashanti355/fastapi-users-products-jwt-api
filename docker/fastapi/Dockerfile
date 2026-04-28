@@ -2,6 +2,7 @@ FROM python:3.12-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/home/python
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -9,10 +10,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /home/python
-ENV PYTHONPATH=/home/python
+
+ARG INSTALL_DEV=false
 
 COPY requirements.txt requirements-dev.txt ./
-RUN pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt
+
+RUN if [ "$INSTALL_DEV" = "true" ]; then \
+        pip install --no-cache-dir -r requirements-dev.txt; \
+    else \
+        pip install --no-cache-dir -r requirements.txt; \
+    fi
 
 COPY ./app /home/python/app
 COPY ./alembic /home/python/alembic
