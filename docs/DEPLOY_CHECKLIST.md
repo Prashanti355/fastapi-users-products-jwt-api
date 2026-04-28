@@ -41,6 +41,7 @@
 - [ ] Variables sensibles solo en entorno seguro
 - [ ] Rate limit revisado para el entorno objetivo
 - [ ] CORS revisado para el frontend real
+- [ ] Las claves expuestas accidentalmente fueron rotadas antes del despliegue
 
 ## 5. Base de datos
 
@@ -63,4 +64,6 @@
 ```bash
 docker compose up -d --build
 docker compose exec api alembic upgrade head
-docker compose exec api pytest tests/unit tests/integration -q
+docker compose exec api pytest tests/unit tests/
+integration -q
+docker compose exec api pytest tests/unit tests/integration --cov=app --cov-report=term-missing
