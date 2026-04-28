@@ -1,5 +1,6 @@
 import argparse
-
+import inspect
+from unittest.mock import AsyncMock
 from app.scripts import cleanup_refresh_tokens
 
 
@@ -91,9 +92,6 @@ async def test_run_cleanup_uses_service_and_returns_deleted_count(mocker):
         }
     ]
 
-
-import inspect
-from unittest.mock import AsyncMock
 
 def test_main_parses_args_runs_cleanup_and_prints_result(mocker):
     parse_args_mock = mocker.patch(

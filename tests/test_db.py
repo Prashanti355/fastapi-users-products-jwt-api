@@ -24,7 +24,7 @@ async def create_data_test():
             first_name="Lorena",
             last_name="Martinez",
             is_superuser=True,
-            is_active=True
+            is_active=True,
         )
 
         session.add(new_user)

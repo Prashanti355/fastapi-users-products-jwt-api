@@ -7,12 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.refresh_token import RefreshToken
 
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 
 from sqlalchemy import delete, or_
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.refresh_token import RefreshToken
 
 class RefreshTokenRepository:
     async def create(
@@ -33,9 +31,7 @@ class RefreshTokenRepository:
         *,
         jti: str,
     ) -> Optional[RefreshToken]:
-        result = await db.execute(
-            select(RefreshToken).where(RefreshToken.jti == jti)
-        )
+        result = await db.execute(select(RefreshToken).where(RefreshToken.jti == jti))
         return result.scalar_one_or_none()
 
     async def revoke_by_jti(
@@ -102,20 +98,17 @@ class RefreshTokenRepository:
         now = datetime.now(timezone.utc)
         revoked_cutoff = now - timedelta(days=revoked_older_than_days)
 
-        statement = (
-            delete(RefreshToken)
-            .where(
-                or_(
-                    RefreshToken.expires_at < now,
-                    (
-                        (RefreshToken.revoked_at.is_not(None))
-                        & (RefreshToken.revoked_at < revoked_cutoff)
-                    ),
-                )
+        statement = delete(RefreshToken).where(
+            or_(
+                RefreshToken.expires_at < now,
+                (
+                    (RefreshToken.revoked_at.is_not(None))
+                    & (RefreshToken.revoked_at < revoked_cutoff)
+                ),
             )
         )
 
         result = await db.execute(statement)
         await db.commit()
 
-        return result.rowcount or 0    
+        return result.rowcount or 0

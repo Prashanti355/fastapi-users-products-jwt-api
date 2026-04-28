@@ -177,12 +177,14 @@ async def test_revoke_all_for_user_revokes_only_active_tokens_of_that_user(db_se
         revoked_at=None,
     )
 
-    db_session.add_all([
-        active_token_1,
-        active_token_2,
-        already_revoked,
-        other_user_token,
-    ])
+    db_session.add_all(
+        [
+            active_token_1,
+            active_token_2,
+            already_revoked,
+            other_user_token,
+        ]
+    )
     await db_session.commit()
 
     repository = RefreshTokenRepository()
@@ -202,8 +204,12 @@ async def test_revoke_all_for_user_revokes_only_active_tokens_of_that_user(db_se
 
     reloaded_active_1 = await repository.get_by_jti(db_session, jti=active_token_1.jti)
     reloaded_active_2 = await repository.get_by_jti(db_session, jti=active_token_2.jti)
-    reloaded_already_revoked = await repository.get_by_jti(db_session, jti=already_revoked.jti)
-    reloaded_other_user = await repository.get_by_jti(db_session, jti=other_user_token.jti)
+    reloaded_already_revoked = await repository.get_by_jti(
+        db_session, jti=already_revoked.jti
+    )
+    reloaded_other_user = await repository.get_by_jti(
+        db_session, jti=other_user_token.jti
+    )
 
     assert reloaded_active_1 is not None
     assert reloaded_active_1.revoked_at is not None
@@ -266,12 +272,14 @@ async def test_delete_expired_or_old_revoked_deletes_only_matching_tokens(db_ses
         revoke_reason="logout",
     )
 
-    db_session.add_all([
-        expired_token,
-        old_revoked_token,
-        active_token,
-        recent_revoked_token,
-    ])
+    db_session.add_all(
+        [
+            expired_token,
+            old_revoked_token,
+            active_token,
+            recent_revoked_token,
+        ]
+    )
     await db_session.commit()
 
     repository = RefreshTokenRepository()
@@ -286,4 +294,7 @@ async def test_delete_expired_or_old_revoked_deletes_only_matching_tokens(db_ses
     assert await repository.get_by_jti(db_session, jti=expired_token.jti) is None
     assert await repository.get_by_jti(db_session, jti=old_revoked_token.jti) is None
     assert await repository.get_by_jti(db_session, jti=active_token.jti) is not None
-    assert await repository.get_by_jti(db_session, jti=recent_revoked_token.jti) is not None
+    assert (
+        await repository.get_by_jti(db_session, jti=recent_revoked_token.jti)
+        is not None
+    )

@@ -31,9 +31,7 @@ class PasswordResetTokenRepository:
         *,
         token: str,
     ) -> PasswordResetToken | None:
-        statement = select(PasswordResetToken).where(
-            PasswordResetToken.token == token
-        )
+        statement = select(PasswordResetToken).where(PasswordResetToken.token == token)
         result = await db.execute(statement)
         return result.scalar_one_or_none()
 
@@ -48,7 +46,7 @@ class PasswordResetTokenRepository:
         await db.commit()
         await db.refresh(password_reset_token)
         return password_reset_token
-    
+
     async def get_latest_by_user_id(
         self,
         db: AsyncSession,
@@ -61,4 +59,4 @@ class PasswordResetTokenRepository:
             .order_by(PasswordResetToken.created_at.desc())
         )
         result = await db.execute(statement)
-        return result.scalars().first()    
+        return result.scalars().first()

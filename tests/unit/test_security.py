@@ -105,10 +105,7 @@ def test_verify_token_returns_none_for_expired_access_token():
         "is_superuser": False,
     }
 
-    expired_token = create_access_token(
-        data=data,
-        expires_delta=timedelta(seconds=-1)
-    )
+    expired_token = create_access_token(data=data, expires_delta=timedelta(seconds=-1))
 
     token_data = verify_token(expired_token, expected_type="access")
 

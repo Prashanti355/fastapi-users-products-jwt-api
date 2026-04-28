@@ -117,7 +117,7 @@ La API incluye documentación interactiva con Swagger, lo que permite explorar e
 - Pruebas de integración
 - Ejecución reproducible dentro de Docker
 - CI con GitHub Actions para migraciones y pruebas automáticas
-- **336 pruebas aprobadas**
+- **337 ruebas aprobadas**
 - **98% de cobertura global**
 
 ## Tecnologías utilizadas
@@ -483,7 +483,7 @@ docker compose exec api pytest tests/unit tests/integration --cov=app --cov-repo
 
 Estado actual:
 
-* **329 pruebas aprobadas**
+* **337 pruebas aprobadas**
 * **98% de cobertura global**
 
 ## Documentación operativa

@@ -98,7 +98,9 @@ async def test_create_product_success(product_service, product_repository, db_se
 
 
 @pytest.mark.asyncio
-async def test_create_product_raises_when_price_is_invalid(product_service, product_repository, db_session):
+async def test_create_product_raises_when_price_is_invalid(
+    product_service, product_repository, db_session
+):
     product_in = FakeSchema(
         name="Laptop Lenovo",
         type="Laptop",
@@ -114,7 +116,9 @@ async def test_create_product_raises_when_price_is_invalid(product_service, prod
 
 
 @pytest.mark.asyncio
-async def test_create_product_raises_when_name_already_exists(product_service, product_repository, db_session):
+async def test_create_product_raises_when_name_already_exists(
+    product_service, product_repository, db_session
+):
     product_repository.get_by_name.return_value = build_product(name="Laptop Lenovo")
 
     product_in = FakeSchema(
@@ -132,9 +136,13 @@ async def test_create_product_raises_when_name_already_exists(product_service, p
 
 
 @pytest.mark.asyncio
-async def test_create_product_raises_when_product_key_already_exists(product_service, product_repository, db_session):
+async def test_create_product_raises_when_product_key_already_exists(
+    product_service, product_repository, db_session
+):
     product_repository.get_by_name.return_value = None
-    product_repository.get_by_product_key.return_value = build_product(product_key="LP1001")
+    product_repository.get_by_product_key.return_value = build_product(
+        product_key="LP1001"
+    )
 
     product_in = FakeSchema(
         name="Laptop Lenovo",
@@ -151,44 +159,44 @@ async def test_create_product_raises_when_product_key_already_exists(product_ser
 
 
 @pytest.mark.asyncio
-async def test_get_product_by_id_success(product_service, product_repository, db_session):
+async def test_get_product_by_id_success(
+    product_service, product_repository, db_session
+):
     product = build_product()
     product_repository.get.return_value = product
 
-    result = await product_service.get_product_by_id(
-        db_session,
-        product_id=product.id
-    )
+    result = await product_service.get_product_by_id(db_session, product_id=product.id)
 
     assert result == product
 
 
 @pytest.mark.asyncio
-async def test_get_product_by_id_raises_when_not_found(product_service, product_repository, db_session):
+async def test_get_product_by_id_raises_when_not_found(
+    product_service, product_repository, db_session
+):
     product_repository.get.return_value = None
 
     with pytest.raises(ProductNotFoundException):
-        await product_service.get_product_by_id(
-            db_session,
-            product_id=uuid4()
-        )
+        await product_service.get_product_by_id(db_session, product_id=uuid4())
 
 
 @pytest.mark.asyncio
-async def test_get_product_by_id_raises_when_deleted_and_include_deleted_is_false(product_service, product_repository, db_session):
+async def test_get_product_by_id_raises_when_deleted_and_include_deleted_is_false(
+    product_service, product_repository, db_session
+):
     product = build_product(is_deleted=True)
     product_repository.get.return_value = product
 
     with pytest.raises(ProductNotFoundException):
         await product_service.get_product_by_id(
-            db_session,
-            product_id=product.id,
-            include_deleted=False
+            db_session, product_id=product.id, include_deleted=False
         )
 
 
 @pytest.mark.asyncio
-async def test_get_multi_products_success(product_service, product_repository, db_session):
+async def test_get_multi_products_success(
+    product_service, product_repository, db_session
+):
     product_repository.get_multi_products.return_value = {
         "total": 1,
         "page": 1,
@@ -221,9 +229,7 @@ async def test_update_product_success(product_service, product_repository, db_se
     )
 
     await product_service.update_product(
-        db_session,
-        product_id=product.id,
-        obj_in=product_in
+        db_session, product_id=product.id, obj_in=product_in
     )
 
     product_repository.update.assert_awaited_once()
@@ -233,70 +239,64 @@ async def test_update_product_success(product_service, product_repository, db_se
 
 
 @pytest.mark.asyncio
-async def test_update_product_raises_when_price_is_invalid(product_service, product_repository, db_session):
+async def test_update_product_raises_when_price_is_invalid(
+    product_service, product_repository, db_session
+):
     product = build_product()
     product_repository.get.return_value = product
 
-    product_in = FakeSchema(
-        price=Decimal("0")
-    )
+    product_in = FakeSchema(price=Decimal("0"))
 
     with pytest.raises(InvalidProductPriceException):
         await product_service.update_product(
-            db_session,
-            product_id=product.id,
-            obj_in=product_in
+            db_session, product_id=product.id, obj_in=product_in
         )
 
 
 @pytest.mark.asyncio
-async def test_update_product_raises_when_name_already_exists(product_service, product_repository, db_session):
+async def test_update_product_raises_when_name_already_exists(
+    product_service, product_repository, db_session
+):
     product = build_product(name="Laptop Lenovo")
     product_repository.get.return_value = product
     product_repository.get_by_name.return_value = build_product(name="Otro Producto")
 
-    product_in = FakeSchema(
-        name="Laptop Lenovo Nueva",
-        price=Decimal("14999.99")
-    )
+    product_in = FakeSchema(name="Laptop Lenovo Nueva", price=Decimal("14999.99"))
 
     with pytest.raises(ProductAlreadyExistsException):
         await product_service.update_product(
-            db_session,
-            product_id=product.id,
-            obj_in=product_in
+            db_session, product_id=product.id, obj_in=product_in
         )
 
 
 @pytest.mark.asyncio
-async def test_update_product_raises_when_product_key_already_exists(product_service, product_repository, db_session):
+async def test_update_product_raises_when_product_key_already_exists(
+    product_service, product_repository, db_session
+):
     product = build_product(product_key="LP1001")
     product_repository.get.return_value = product
-    product_repository.get_by_product_key.return_value = build_product(product_key="LP2002")
-
-    product_in = FakeSchema(
-        product_key="LP2002",
-        price=Decimal("14999.99")
+    product_repository.get_by_product_key.return_value = build_product(
+        product_key="LP2002"
     )
+
+    product_in = FakeSchema(product_key="LP2002", price=Decimal("14999.99"))
 
     with pytest.raises(ProductAlreadyExistsException):
         await product_service.update_product(
-            db_session,
-            product_id=product.id,
-            obj_in=product_in
+            db_session, product_id=product.id, obj_in=product_in
         )
 
 
 @pytest.mark.asyncio
-async def test_delete_product_soft_delete_success(product_service, product_repository, db_session):
+async def test_delete_product_soft_delete_success(
+    product_service, product_repository, db_session
+):
     product = build_product(is_deleted=False)
     product_repository.get.return_value = product
     product_repository.soft_delete.return_value = product
 
     await product_service.delete_product(
-        db_session,
-        product_id=product.id,
-        hard_delete=False
+        db_session, product_id=product.id, hard_delete=False
     )
 
     product_repository.soft_delete.assert_awaited_once()
@@ -305,28 +305,28 @@ async def test_delete_product_soft_delete_success(product_service, product_repos
 
 
 @pytest.mark.asyncio
-async def test_delete_product_raises_when_already_deleted(product_service, product_repository, db_session):
+async def test_delete_product_raises_when_already_deleted(
+    product_service, product_repository, db_session
+):
     product = build_product(is_deleted=True)
     product_repository.get.return_value = product
 
     with pytest.raises(ProductAlreadyDeletedException):
         await product_service.delete_product(
-            db_session,
-            product_id=product.id,
-            hard_delete=False
+            db_session, product_id=product.id, hard_delete=False
         )
 
 
 @pytest.mark.asyncio
-async def test_delete_product_hard_delete_success(product_service, product_repository, db_session):
+async def test_delete_product_hard_delete_success(
+    product_service, product_repository, db_session
+):
     product = build_product()
     product_repository.get.return_value = product
     product_repository.remove.return_value = product
 
     await product_service.delete_product(
-        db_session,
-        product_id=product.id,
-        hard_delete=True
+        db_session, product_id=product.id, hard_delete=True
     )
 
     product_repository.remove.assert_awaited_once()
@@ -348,7 +348,9 @@ async def test_restore_product_success(product_service, product_repository, db_s
 
 
 @pytest.mark.asyncio
-async def test_restore_product_raises_when_product_was_not_deleted(product_service, product_repository, db_session):
+async def test_restore_product_raises_when_product_was_not_deleted(
+    product_service, product_repository, db_session
+):
     product = build_product(is_deleted=False)
     product_repository.get.return_value = product
 
@@ -357,7 +359,9 @@ async def test_restore_product_raises_when_product_was_not_deleted(product_servi
 
 
 @pytest.mark.asyncio
-async def test_activate_product_success(product_service, product_repository, db_session):
+async def test_activate_product_success(
+    product_service, product_repository, db_session
+):
     product = build_product(status=False, is_deleted=False)
     product_repository.get.return_value = product
     product_repository.update.return_value = product
@@ -372,7 +376,9 @@ async def test_activate_product_success(product_service, product_repository, db_
 
 
 @pytest.mark.asyncio
-async def test_activate_product_raises_when_already_active(product_service, product_repository, db_session):
+async def test_activate_product_raises_when_already_active(
+    product_service, product_repository, db_session
+):
     product = build_product(status=True, is_deleted=False)
     product_repository.get.return_value = product
 
@@ -381,7 +387,9 @@ async def test_activate_product_raises_when_already_active(product_service, prod
 
 
 @pytest.mark.asyncio
-async def test_deactivate_product_success(product_service, product_repository, db_session):
+async def test_deactivate_product_success(
+    product_service, product_repository, db_session
+):
     product = build_product(status=True, is_deleted=False)
     product_repository.get.return_value = product
     product_repository.update.return_value = product
@@ -394,7 +402,9 @@ async def test_deactivate_product_success(product_service, product_repository, d
 
 
 @pytest.mark.asyncio
-async def test_deactivate_product_raises_when_already_inactive(product_service, product_repository, db_session):
+async def test_deactivate_product_raises_when_already_inactive(
+    product_service, product_repository, db_session
+):
     product = build_product(status=False, is_deleted=False)
     product_repository.get.return_value = product
 

@@ -27,7 +27,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         order: str = "desc",
         filters: Optional[Dict[str, Any]] = None,
         search: Optional[str] = None,
-        search_fields: Optional[List[str]] = None
+        search_fields: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         skip = (page - 1) * limit
 
@@ -48,9 +48,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
             for field in search_fields:
                 if hasattr(self.model, field):
-                    search_conditions.append(
-                        getattr(self.model, field).ilike(pattern)
-                    )
+                    search_conditions.append(getattr(self.model, field).ilike(pattern))
 
             if search_conditions:
                 conditions.append(or_(*search_conditions))
@@ -60,9 +58,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
         if hasattr(self.model, sort_by):
             order_fn = desc if order.lower() == "desc" else asc
-            base_query = base_query.order_by(
-                order_fn(getattr(self.model, sort_by))
-            )
+            base_query = base_query.order_by(order_fn(getattr(self.model, sort_by)))
 
         count_query = select(func.count()).select_from(base_query.subquery())
         total_result = await db.execute(count_query)
@@ -72,19 +68,9 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         result = await db.execute(paged_query)
         items = result.scalars().all()
 
-        return {
-            "total": total,
-            "page": page,
-            "limit": limit,
-            "items": items
-        }
+        return {"total": total, "page": page, "limit": limit, "items": items}
 
-    async def create(
-        self,
-        db: AsyncSession,
-        *,
-        obj_in: CreateSchemaType
-    ) -> ModelType:
+    async def create(self, db: AsyncSession, *, obj_in: CreateSchemaType) -> ModelType:
         if isinstance(obj_in, dict):
             obj_in_data = obj_in
         else:
@@ -101,7 +87,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db: AsyncSession,
         *,
         db_obj: ModelType,
-        obj_in: Union[UpdateSchemaType, Dict[str, Any]]
+        obj_in: Union[UpdateSchemaType, Dict[str, Any]],
     ) -> ModelType:
         if isinstance(obj_in, dict):
             update_data = obj_in
@@ -120,12 +106,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         await db.refresh(db_obj)
         return db_obj
 
-    async def remove(
-        self,
-        db: AsyncSession,
-        *,
-        id: Any
-    ) -> Optional[ModelType]:
+    async def remove(self, db: AsyncSession, *, id: Any) -> Optional[ModelType]:
         obj = await db.get(self.model, id)
         if obj:
             await db.delete(obj)
@@ -133,11 +114,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return obj
 
     async def soft_remove(
-        self,
-        db: AsyncSession,
-        *,
-        id: Any,
-        **kwargs
+        self, db: AsyncSession, *, id: Any, **kwargs
     ) -> Optional[ModelType]:
         obj = await db.get(self.model, id)
         if not obj:

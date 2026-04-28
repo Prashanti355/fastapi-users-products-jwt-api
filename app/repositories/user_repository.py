@@ -8,28 +8,18 @@ from app.repositories.base import BaseRepository
 from app.schemas.user import UserCreateRequest, UserPartialUpdateRequest
 
 
-class UserRepository(
-    BaseRepository[User, UserCreateRequest, UserPartialUpdateRequest]
-):
+class UserRepository(BaseRepository[User, UserCreateRequest, UserPartialUpdateRequest]):
     def __init__(self):
         super().__init__(User)
 
     async def get_by_username(
-        self,
-        db: AsyncSession,
-        *,
-        username: str
+        self, db: AsyncSession, *, username: str
     ) -> Optional[User]:
         statement = select(User).where(User.username == username)
         result = await db.execute(statement)
         return result.scalar_one_or_none()
 
-    async def get_by_email(
-        self,
-        db: AsyncSession,
-        *,
-        email: str
-    ) -> Optional[User]:
+    async def get_by_email(self, db: AsyncSession, *, email: str) -> Optional[User]:
         statement = select(User).where(User.email == email)
         result = await db.execute(statement)
         return result.scalar_one_or_none()
@@ -58,15 +48,11 @@ class UserRepository(
             order=order,
             filters=filters,
             search=search,
-            search_fields=["username", "email", "first_name", "last_name"]
+            search_fields=["username", "email", "first_name", "last_name"],
         )
 
     async def soft_delete(
-        self,
-        db: AsyncSession,
-        *,
-        user_id: Any,
-        **kwargs
+        self, db: AsyncSession, *, user_id: Any, **kwargs
     ) -> Optional[User]:
         return await self.soft_remove(db, id=user_id, **kwargs)
 

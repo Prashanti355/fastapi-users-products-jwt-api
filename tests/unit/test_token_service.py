@@ -57,11 +57,7 @@ def test_generate_tokens_access_token_is_valid_access_token():
 
 
 def test_generate_tokens_refresh_token_is_valid_refresh_token():
-    user = build_test_user(
-        username="admin_refresh",
-        is_superuser=True,
-        role="admin"
-    )
+    user = build_test_user(username="admin_refresh", is_superuser=True, role="admin")
 
     tokens = TokenService.generate_tokens(user)
     token_data = TokenService.verify_refresh_token(tokens.refresh_token)

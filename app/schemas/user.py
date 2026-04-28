@@ -17,6 +17,7 @@ class Gender(str, Enum):
 # DTOs de lectura completos (alineados con la práctica)
 # =========================================================
 
+
 class UserBaseDetail(BaseModel):
     first_name: str = Field(..., max_length=150)
     last_name: str = Field(..., max_length=150)
@@ -58,16 +59,16 @@ class UserRead(UserBaseDetail):
 
 class UserCreateRequest(UserBaseDetail):
     password: str = Field(
-        ...,
-        min_length=8,
-        description="Contraseña (se almacenará cifrada)"
+        ..., min_length=8, description="Contraseña (se almacenará cifrada)"
     )
 
     @field_validator("password")
     @classmethod
     def validate_password(cls, v: str) -> str:
         if not re.search(r"[A-Za-z]", v) or not re.search(r"\d", v):
-            raise ValueError("La contraseña debe incluir al menos una letra y un número")
+            raise ValueError(
+                "La contraseña debe incluir al menos una letra y un número"
+            )
         return v
 
 
@@ -104,7 +105,9 @@ class UserPartialUpdateRequest(BaseModel):
     def validate_password(cls, v: Optional[str]) -> Optional[str]:
         if v is not None:
             if not re.search(r"[A-Za-z]", v) or not re.search(r"\d", v):
-                raise ValueError("La contraseña debe incluir al menos una letra y un número")
+                raise ValueError(
+                    "La contraseña debe incluir al menos una letra y un número"
+                )
         return v
 
 
@@ -168,6 +171,7 @@ class PagedUsersResult(BaseModel):
 # =========================================================
 # DTOs activos de compatibilidad con el código actual
 # =========================================================
+
 
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=20)

@@ -108,7 +108,9 @@ async def test_user_repository_get_by_email_returns_none_when_missing(db_session
 
 
 @pytest.mark.asyncio
-async def test_user_repository_get_multi_users_applies_default_is_deleted_filter(db_session):
+async def test_user_repository_get_multi_users_applies_default_is_deleted_filter(
+    db_session,
+):
     repo = UserRepository()
     suffix = uuid4().hex[:12]
     search_token = f"ln{suffix}"
@@ -187,7 +189,9 @@ async def test_user_repository_get_multi_users_can_filter_deleted_records(db_ses
 
 
 @pytest.mark.asyncio
-async def test_user_repository_get_multi_users_applies_is_active_search_and_sort(db_session):
+async def test_user_repository_get_multi_users_applies_is_active_search_and_sort(
+    db_session,
+):
     repo = UserRepository()
     suffix = uuid4().hex[:4]
     search_token = f"tok{suffix}"
@@ -288,7 +292,9 @@ async def test_user_repository_get_multi_users_applies_pagination(db_session):
 
 
 @pytest.mark.asyncio
-async def test_user_repository_soft_delete_marks_user_deleted_inactive_and_applies_kwargs(db_session):
+async def test_user_repository_soft_delete_marks_user_deleted_inactive_and_applies_kwargs(
+    db_session,
+):
     repo = UserRepository()
     suffix = uuid4().hex[:6]
     deleter_id = uuid4()

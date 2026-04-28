@@ -58,7 +58,9 @@ async def test_audit_log_repository_create_persists_and_returns_log(db_session):
 
 
 @pytest.mark.asyncio
-async def test_audit_log_repository_get_multi_without_filters_returns_paginated_results(db_session):
+async def test_audit_log_repository_get_multi_without_filters_returns_paginated_results(
+    db_session,
+):
     repo = AuditLogRepository()
     base_time = datetime.now(timezone.utc)
 
@@ -212,7 +214,9 @@ async def test_audit_log_repository_get_multi_applies_all_supported_filters(db_s
 
 
 @pytest.mark.asyncio
-async def test_audit_log_repository_get_multi_supports_alternate_sort_fields_and_ascending_order(db_session):
+async def test_audit_log_repository_get_multi_supports_alternate_sort_fields_and_ascending_order(
+    db_session,
+):
     repo = AuditLogRepository()
     base_time = datetime.now(timezone.utc)
     suffix = uuid4().hex[:6]
@@ -259,8 +263,11 @@ async def test_audit_log_repository_get_multi_supports_alternate_sort_fields_and
     assert result["items"][1].id == log_b.id
     assert result["items"][1].actor_username == f"bravo_{suffix}"
 
+
 @pytest.mark.asyncio
-async def test_audit_log_repository_get_multi_falls_back_to_created_at_when_sort_field_is_invalid(db_session):
+async def test_audit_log_repository_get_multi_falls_back_to_created_at_when_sort_field_is_invalid(
+    db_session,
+):
     repo = AuditLogRepository()
     base_time = datetime.now(timezone.utc)
     suffix = uuid4().hex[:6]
@@ -299,8 +306,7 @@ async def test_audit_log_repository_get_multi_falls_back_to_created_at_when_sort
     )
 
     filtered_items = [
-        item for item in result["items"]
-        if item.id in {older.id, newer.id}
+        item for item in result["items"] if item.id in {older.id, newer.id}
     ]
 
     assert len(filtered_items) == 2

@@ -49,7 +49,9 @@ def test_validate_secret_key_rejects_short_value():
     with pytest.raises(ValidationError) as exc_info:
         build_settings(SECRET_KEY="short-secret-key")
 
-    assert "SECRET_KEY debe tener al menos 32 caracteres para ser segura" in str(exc_info.value)
+    assert "SECRET_KEY debe tener al menos 32 caracteres para ser segura" in str(
+        exc_info.value
+    )
 
 
 def test_parse_cors_origins_accepts_json_list_string():
@@ -89,9 +91,7 @@ def test_parse_cors_origins_preserves_list_input():
 
 
 def test_parse_rate_limit_defaults_accepts_json_list_string():
-    settings_obj = build_settings(
-        RATE_LIMIT_DEFAULTS='["100/minute","10/second"]'
-    )
+    settings_obj = build_settings(RATE_LIMIT_DEFAULTS='["100/minute","10/second"]')
 
     assert settings_obj.RATE_LIMIT_DEFAULTS == [
         "100/minute",
@@ -100,9 +100,7 @@ def test_parse_rate_limit_defaults_accepts_json_list_string():
 
 
 def test_parse_rate_limit_defaults_accepts_comma_separated_string():
-    settings_obj = build_settings(
-        RATE_LIMIT_DEFAULTS="100/minute, 10/second"
-    )
+    settings_obj = build_settings(RATE_LIMIT_DEFAULTS="100/minute, 10/second")
 
     assert settings_obj.RATE_LIMIT_DEFAULTS == [
         "100/minute",

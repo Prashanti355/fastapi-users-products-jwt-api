@@ -24,17 +24,13 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     try:
         return bcrypt.checkpw(
-            plain_password.encode("utf-8"),
-            hashed_password.encode("utf-8")
+            plain_password.encode("utf-8"), hashed_password.encode("utf-8")
         )
     except Exception:
         return False
 
 
-def create_access_token(
-    data: dict,
-    expires_delta: Optional[timedelta] = None
-) -> str:
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """
     Genera un access token JWT firmado.
     Incluye token_type='access' para diferenciarlo del refresh token.
@@ -52,17 +48,12 @@ def create_access_token(
     to_encode.update({"exp": expire})
 
     encoded_jwt = jwt.encode(
-        to_encode,
-        settings.SECRET_KEY,
-        algorithm=settings.ALGORITHM
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
     return encoded_jwt
 
 
-def create_refresh_token(
-    data: dict,
-    expires_delta: Optional[timedelta] = None
-) -> str:
+def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """
     Genera un refresh token JWT firmado.
     Incluye token_type='refresh' para diferenciarlo del access token.
@@ -80,17 +71,12 @@ def create_refresh_token(
     to_encode.update({"exp": expire})
 
     encoded_jwt = jwt.encode(
-        to_encode,
-        settings.SECRET_KEY,
-        algorithm=settings.ALGORITHM
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
     return encoded_jwt
 
 
-def verify_token(
-    token: str,
-    expected_type: str = "access"
-) -> Optional[TokenData]:
+def verify_token(token: str, expected_type: str = "access") -> Optional[TokenData]:
     """
     Decodifica y valida un token JWT.
 
@@ -99,9 +85,7 @@ def verify_token(
     """
     try:
         payload = jwt.decode(
-            token,
-            settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM]
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
 
         token_type: str = payload.get("token_type", "")
@@ -118,7 +102,7 @@ def verify_token(
             role=payload.get("role"),
             is_superuser=payload.get("is_superuser", False),
             token_type=token_type,
-            exp=payload.get("exp")
+            exp=payload.get("exp"),
         )
     except JWTError:
         return None

@@ -7,7 +7,9 @@ from app.core.request_logging_middleware import RequestLoggingMiddleware
 
 
 @pytest.mark.asyncio
-async def test_request_logging_middleware_logs_success_and_sets_request_id_header(mocker):
+async def test_request_logging_middleware_logs_success_and_sets_request_id_header(
+    mocker,
+):
     middleware = RequestLoggingMiddleware(app=lambda scope, receive, send: None)
 
     request = SimpleNamespace(

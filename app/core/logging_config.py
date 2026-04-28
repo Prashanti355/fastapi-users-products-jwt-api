@@ -4,7 +4,6 @@ from logging.handlers import RotatingFileHandler
 
 from app.core.config import settings
 
-
 LOG_DIR = Path(settings.LOG_DIR)
 LOG_FORMAT = (
     "%(asctime)s | %(levelname)s | request_id=%(request_id)s | "
@@ -59,15 +58,11 @@ def setup_logging() -> None:
     if not technical_configured:
         technical_logger.setLevel(logging.INFO)
         technical_logger.propagate = False
-        technical_logger.addHandler(
-            _build_file_handler("technical.log", logging.INFO)
-        )
+        technical_logger.addHandler(_build_file_handler("technical.log", logging.INFO))
         technical_logger._configured = True
 
     if not error_configured:
         error_logger.setLevel(logging.ERROR)
         error_logger.propagate = False
-        error_logger.addHandler(
-            _build_file_handler("error.log", logging.ERROR)
-        )
+        error_logger.addHandler(_build_file_handler("error.log", logging.ERROR))
         error_logger._configured = True

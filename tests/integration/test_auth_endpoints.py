@@ -8,6 +8,7 @@ from app.repositories.password_reset_token_repository import (
 )
 from app.repositories.user_repository import UserRepository
 
+
 @pytest.mark.asyncio
 async def test_register_success(async_client, register_public_user):
     result = await register_public_user()
@@ -25,16 +26,15 @@ async def test_register_success(async_client, register_public_user):
 
 
 @pytest.mark.asyncio
-async def test_register_duplicate_user_returns_conflict(async_client, register_public_user):
+async def test_register_duplicate_user_returns_conflict(
+    async_client, register_public_user
+):
     first = await register_public_user()
     payload = first["payload"]
 
     assert first["response"].status_code == 201
 
-    second_response = await async_client.post(
-        "/api/v1/auth/register",
-        json=payload
-    )
+    second_response = await async_client.post("/api/v1/auth/register", json=payload)
 
     assert second_response.status_code == 409
 
@@ -50,8 +50,7 @@ async def test_login_success(async_client, register_public_user, login_user):
     assert registration["response"].status_code == 201
 
     response = await login_user(
-        username=payload["username"],
-        password=payload["password"]
+        username=payload["username"], password=payload["password"]
     )
 
     assert response.status_code == 200
@@ -64,15 +63,16 @@ async def test_login_success(async_client, register_public_user, login_user):
 
 
 @pytest.mark.asyncio
-async def test_login_with_invalid_password_returns_401(async_client, register_public_user, login_user):
+async def test_login_with_invalid_password_returns_401(
+    async_client, register_public_user, login_user
+):
     registration = await register_public_user()
     payload = registration["payload"]
 
     assert registration["response"].status_code == 201
 
     response = await login_user(
-        username=payload["username"],
-        password="PasswordIncorrecto999"
+        username=payload["username"], password="PasswordIncorrecto999"
     )
 
     assert response.status_code == 401
@@ -90,10 +90,7 @@ async def test_me_with_valid_token_returns_current_user(
     headers = auth_data["headers"]
     payload = auth_data["payload"]
 
-    response = await async_client.get(
-        "/api/v1/auth/me",
-        headers=headers
-    )
+    response = await async_client.get("/api/v1/auth/me", headers=headers)
 
     assert response.status_code == 200
 
@@ -125,8 +122,7 @@ async def test_refresh_token_success(async_client, register_public_user):
     refresh_token = response.json()["resultado"]["refresh_token"]
 
     refresh_response = await async_client.post(
-        "/api/v1/auth/refresh-token",
-        json={"refresh_token": refresh_token}
+        "/api/v1/auth/refresh-token", json={"refresh_token": refresh_token}
     )
 
     assert refresh_response.status_code == 200
@@ -141,8 +137,7 @@ async def test_refresh_token_success(async_client, register_public_user):
 @pytest.mark.asyncio
 async def test_refresh_token_with_invalid_token_returns_401(async_client):
     response = await async_client.post(
-        "/api/v1/auth/refresh-token",
-        json={"refresh_token": "token.invalido.de.prueba"}
+        "/api/v1/auth/refresh-token", json={"refresh_token": "token.invalido.de.prueba"}
     )
 
     assert response.status_code == 401
@@ -163,16 +158,14 @@ async def test_public_register_does_not_create_superuser(
     assert registration["response"].status_code == 201
 
     login_response = await login_user(
-        username=payload["username"],
-        password=payload["password"]
+        username=payload["username"], password=payload["password"]
     )
     assert login_response.status_code == 200
 
     access_token = login_response.json()["access_token"]
 
     me_response = await async_client.get(
-        "/api/v1/auth/me",
-        headers={"Authorization": f"Bearer {access_token}"}
+        "/api/v1/auth/me", headers={"Authorization": f"Bearer {access_token}"}
     )
 
     assert me_response.status_code == 200
@@ -180,6 +173,7 @@ async def test_public_register_does_not_create_superuser(
     body = me_response.json()
     assert body["resultado"]["username"] == payload["username"]
     assert body["resultado"]["is_superuser"] is False
+
 
 @pytest.mark.asyncio
 async def test_logout_revokes_refresh_token(async_client, register_public_user):
@@ -214,7 +208,8 @@ async def test_logout_revokes_refresh_token(async_client, register_public_user):
         json={"refresh_token": refresh_token},
     )
 
-    assert refresh_response.status_code == 401    
+    assert refresh_response.status_code == 401
+
 
 @pytest.mark.asyncio
 async def test_logout_is_idempotent(async_client, register_public_user, login_user):
@@ -323,7 +318,8 @@ async def test_logout_revoked_refresh_token_cannot_be_used_again(
         json={"refresh_token": refresh_token},
     )
 
-    assert refresh_after_logout.status_code == 401    
+    assert refresh_after_logout.status_code == 401
+
 
 @pytest.mark.asyncio
 async def test_logout_all_revokes_all_refresh_tokens_for_current_user(
@@ -358,7 +354,9 @@ async def test_logout_all_revokes_all_refresh_tokens_for_current_user(
     assert logout_all_response.status_code == 200
     logout_all_body = logout_all_response.json()
     assert logout_all_body["codigo"] == 200
-    assert logout_all_body["mensaje"] == "Todas las sesiones fueron cerradas exitosamente."
+    assert (
+        logout_all_body["mensaje"] == "Todas las sesiones fueron cerradas exitosamente."
+    )
 
     first_refresh_after_logout_all = await async_client.post(
         "/api/v1/auth/refresh-token",
@@ -370,7 +368,7 @@ async def test_logout_all_revokes_all_refresh_tokens_for_current_user(
         "/api/v1/auth/refresh-token",
         json={"refresh_token": second_tokens["refresh_token"]},
     )
-    assert second_refresh_after_logout_all.status_code == 401    
+    assert second_refresh_after_logout_all.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -431,7 +429,9 @@ async def test_forgot_password_returns_200_and_creates_token_for_existing_email(
 
     body = response.json()
     assert body["codigo"] == 200
-    assert body["mensaje"] == "Si el correo existe, se generó un enlace de recuperación."
+    assert (
+        body["mensaje"] == "Si el correo existe, se generó un enlace de recuperación."
+    )
 
     user_repo = UserRepository()
     token_repo = PasswordResetTokenRepository()
@@ -463,7 +463,10 @@ async def test_forgot_password_returns_neutral_response_for_unknown_email(
 
     body = response.json()
     assert body["codigo"] == 200
-    assert body["mensaje"] == "Si el correo existe, se generó un enlace de recuperación."        
+    assert (
+        body["mensaje"] == "Si el correo existe, se generó un enlace de recuperación."
+    )
+
 
 @pytest.mark.asyncio
 async def test_reset_password_changes_password_and_revokes_refresh_tokens(
@@ -541,7 +544,8 @@ async def test_reset_password_changes_password_and_revokes_refresh_tokens(
         "/api/v1/auth/refresh-token",
         json={"refresh_token": old_refresh_token},
     )
-    assert refresh_after_reset.status_code == 401    
+    assert refresh_after_reset.status_code == 401
+
 
 @pytest.mark.asyncio
 async def test_reset_password_with_invalid_token_returns_401(async_client):
@@ -553,7 +557,8 @@ async def test_reset_password_with_invalid_token_returns_401(async_client):
         },
     )
 
-    assert response.status_code == 401    
+    assert response.status_code == 401
+
 
 @pytest.mark.asyncio
 async def test_register_duplicate_email_returns_conflict(
@@ -603,13 +608,11 @@ async def test_login_with_inactive_user_returns_403(
     payload = registration["payload"]
 
     await db_session.execute(
-        text(
-            """
+        text("""
             UPDATE users
             SET is_active = FALSE
             WHERE username = :username
-            """
-        ),
+            """),
         {"username": payload["username"]},
     )
     await db_session.commit()
@@ -640,13 +643,11 @@ async def test_refresh_token_with_inactive_user_returns_403(
     refresh_token = registration["response"].json()["resultado"]["refresh_token"]
 
     await db_session.execute(
-        text(
-            """
+        text("""
             UPDATE users
             SET is_active = FALSE
             WHERE username = :username
-            """
-        ),
+            """),
         {"username": payload["username"]},
     )
     await db_session.commit()
@@ -683,13 +684,11 @@ async def test_forgot_password_with_inactive_user_returns_neutral_response(
     payload = registration["payload"]
 
     await db_session.execute(
-        text(
-            """
+        text("""
             UPDATE users
             SET is_active = FALSE
             WHERE username = :username
-            """
-        ),
+            """),
         {"username": payload["username"]},
     )
     await db_session.commit()
@@ -702,7 +701,9 @@ async def test_forgot_password_with_inactive_user_returns_neutral_response(
     assert response.status_code == 200
     body = response.json()
     assert body["codigo"] == 200
-    assert body["mensaje"] == "Si el correo existe, se generó un enlace de recuperación."
+    assert (
+        body["mensaje"] == "Si el correo existe, se generó un enlace de recuperación."
+    )
 
 
 @pytest.mark.asyncio
@@ -762,4 +763,4 @@ async def test_reset_password_token_cannot_be_reused(
 
     assert second_reset.status_code == 401
     body = second_reset.json()
-    assert body["codigo"] == 401    
+    assert body["codigo"] == 401

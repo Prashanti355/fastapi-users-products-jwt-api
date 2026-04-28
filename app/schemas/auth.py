@@ -10,16 +10,9 @@ class LoginRequest(BaseModel):
     """
     DTO para la solicitud de inicio de sesión.
     """
-    username: str = Field(
-        ...,
-        max_length=20,
-        description="Nombre de usuario"
-    )
-    password: str = Field(
-        ...,
-        min_length=8,
-        description="Contraseña del usuario"
-    )
+
+    username: str = Field(..., max_length=20, description="Nombre de usuario")
+    password: str = Field(..., min_length=8, description="Contraseña del usuario")
 
 
 class PublicRegisterRequest(BaseModel):
@@ -27,6 +20,7 @@ class PublicRegisterRequest(BaseModel):
     DTO público para registro.
     Solo incluye campos que un usuario normal puede enviar.
     """
+
     first_name: str = Field(..., max_length=150)
     last_name: str = Field(..., max_length=150)
     username: str = Field(..., max_length=20)
@@ -66,21 +60,12 @@ class TokenResponse(BaseModel):
     """
     DTO de respuesta con los tokens generados.
     """
-    access_token: str = Field(
-        ...,
-        description="Token JWT de acceso"
-    )
-    refresh_token: str = Field(
-        ...,
-        description="Token JWT de refresco"
-    )
-    token_type: str = Field(
-        default="bearer",
-        description="Tipo de token"
-    )
+
+    access_token: str = Field(..., description="Token JWT de acceso")
+    refresh_token: str = Field(..., description="Token JWT de refresco")
+    token_type: str = Field(default="bearer", description="Tipo de token")
     expires_in: int = Field(
-        ...,
-        description="Tiempo de expiración del access token en segundos"
+        ..., description="Tiempo de expiración del access token en segundos"
     )
 
 
@@ -89,16 +74,15 @@ class RefreshTokenRequest(BaseModel):
     DTO para solicitar un nuevo par de tokens
     usando el refresh token.
     """
-    refresh_token: str = Field(
-        ...,
-        description="Token de refresco válido"
-    )
+
+    refresh_token: str = Field(..., description="Token de refresco válido")
 
 
 class TokenData(BaseModel):
     """
     Datos decodificados del token JWT (claims internos).
     """
+
     sub: Optional[str] = None
     username: Optional[str] = None
     role: Optional[str] = None
@@ -113,6 +97,7 @@ class CurrentUser(BaseModel):
     Representa al usuario autenticado extraído del token JWT
     y validado contra la base de datos.
     """
+
     id: UUID
     username: str
     email: Optional[EmailStr] = None
@@ -130,6 +115,7 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str = Field(min_length=20, max_length=255)
     new_password: str = Field(min_length=8, max_length=128)
+
 
 class PasswordResetDebugResult(BaseModel):
     email: str

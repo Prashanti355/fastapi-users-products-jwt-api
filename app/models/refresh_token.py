@@ -21,12 +21,10 @@ class RefreshToken(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), nullable=False)
     )
     revoked_at: Optional[datetime] = Field(
-        default=None,
-        sa_column=Column(DateTime(timezone=True), nullable=True)
+        default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
     )
     revoke_reason: Optional[str] = Field(
-        default=None,
-        sa_column=Column(String(100), nullable=True)
+        default=None, sa_column=Column(String(100), nullable=True)
     )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),

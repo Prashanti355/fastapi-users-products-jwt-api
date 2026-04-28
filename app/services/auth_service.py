@@ -15,7 +15,6 @@ from app.core.exceptions.user_exceptions import (
 from app.core.security import get_password_hash, verify_password
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
-from app.services.refresh_token_service import RefreshTokenService
 from app.services.token_service import TokenService
 
 from app.schemas.auth import (
@@ -76,19 +75,13 @@ class AuthService:
         )
 
     async def login(
-        self,
-        db: AsyncSession,
-        *,
-        login_data: LoginRequest
+        self, db: AsyncSession, *, login_data: LoginRequest
     ) -> TokenResponse:
         """
         Autentica al usuario con username + password
         y genera un nuevo par de tokens JWT.
         """
-        user = await self.user_repo.get_by_username(
-            db,
-            username=login_data.username
-        )
+        user = await self.user_repo.get_by_username(db, username=login_data.username)
 
         if not user:
             raise InvalidCredentialsException()
@@ -115,33 +108,26 @@ class AuthService:
         return tokens
 
     async def register(
-        self,
-        db: AsyncSession,
-        *,
-        user_data: PublicRegisterRequest
+        self, db: AsyncSession, *, user_data: PublicRegisterRequest
     ) -> TokenResponse:
         """
         Registra un nuevo usuario y genera tokens JWT inmediatamente.
         """
         existing_user = await self.user_repo.get_by_username(
-            db,
-            username=user_data.username
+            db, username=user_data.username
         )
         if existing_user:
             raise UserAlreadyExistsException(
-                conflict_type="username",
-                value=user_data.username
+                conflict_type="username", value=user_data.username
             )
 
         if user_data.email:
             existing_email = await self.user_repo.get_by_email(
-                db,
-                email=user_data.email
+                db, email=user_data.email
             )
             if existing_email:
                 raise UserAlreadyExistsException(
-                    conflict_type="email",
-                    value=user_data.email
+                    conflict_type="email", value=user_data.email
                 )
 
         user_dict = user_data.model_dump()
@@ -184,10 +170,7 @@ class AuthService:
         return tokens
 
     async def refresh_token(
-        self,
-        db: AsyncSession,
-        *,
-        refresh_token: str
+        self, db: AsyncSession, *, refresh_token: str
     ) -> TokenResponse:
         """
         Genera un nuevo par de tokens usando un refresh token válido.
@@ -206,10 +189,7 @@ class AuthService:
                     message="El refresh token fue revocado, expiró o no existe."
                 )
 
-        user = await self.user_repo.get(
-            db,
-            id=UUID(token_data.sub)
-        )
+        user = await self.user_repo.get(db, id=UUID(token_data.sub))
 
         if not user:
             raise TokenRefreshException(
@@ -236,21 +216,13 @@ class AuthService:
 
         return tokens
 
-    async def get_current_user(
-        self,
-        db: AsyncSession,
-        *,
-        token: str
-    ) -> CurrentUser:
+    async def get_current_user(self, db: AsyncSession, *, token: str) -> CurrentUser:
         """
         Extrae y valida el usuario actual desde un access token.
         """
         token_data = self.token_service.verify_access_token(token)
 
-        user = await self.user_repo.get(
-            db,
-            id=UUID(token_data.sub)
-        )
+        user = await self.user_repo.get(db, id=UUID(token_data.sub))
 
         if not user:
             raise InvalidTokenException(
@@ -268,12 +240,8 @@ class AuthService:
             is_superuser=user.is_superuser,
             is_active=user.is_active,
         )
-    async def logout(
-        self,
-        db: AsyncSession,
-        *,
-        refresh_token: str
-    ) -> None:
+
+    async def logout(self, db: AsyncSession, *, refresh_token: str) -> None:
         """
         Revoca un refresh token válido. La operación es idempotente:
         si el token ya estaba revocado o no existe en la tabla, no falla.
@@ -298,14 +266,9 @@ class AuthService:
             db,
             jti=token_data.jti,
             revoke_reason="logout",
-        )    
+        )
 
-    async def logout_all(
-        self,
-        db: AsyncSession,
-        *,
-        user_id: UUID
-    ) -> int:
+    async def logout_all(self, db: AsyncSession, *, user_id: UUID) -> int:
         """
         Revoca todos los refresh tokens activos del usuario.
         Retorna cuántos tokens fueron revocados.
@@ -319,8 +282,7 @@ class AuthService:
             revoke_reason="logout_all",
         )
 
-        return len(revoked_tokens)     
-
+        return len(revoked_tokens)
 
     async def forgot_password(
         self,
@@ -446,4 +408,4 @@ class AuthService:
                 revoke_reason="password_reset",
             )
 
-        return user       
+        return user

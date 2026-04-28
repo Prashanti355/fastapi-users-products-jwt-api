@@ -283,7 +283,9 @@ async def test_forgot_password_logs_event_when_user_exists(
     )
 
     assert response.codigo == 200
-    assert response.mensaje == "Si el correo existe, se generó un enlace de recuperación."
+    assert (
+        response.mensaje == "Si el correo existe, se generó un enlace de recuperación."
+    )
     assert response.resultado == {}
 
     auth_service.forgot_password.assert_awaited_once_with(
@@ -319,7 +321,9 @@ async def test_forgot_password_skips_audit_log_when_user_does_not_exist(
     )
 
     assert response.codigo == 200
-    assert response.mensaje == "Si el correo existe, se generó un enlace de recuperación."
+    assert (
+        response.mensaje == "Si el correo existe, se generó un enlace de recuperación."
+    )
     assert response.resultado == {}
 
     auth_service.forgot_password.assert_awaited_once_with(
@@ -454,7 +458,9 @@ async def test_logout_skips_audit_log_when_user_does_not_exist(
     assert response.mensaje == "Sesión cerrada exitosamente."
     assert response.resultado == {}
 
-    token_service.verify_refresh_token.assert_called_once_with("refresh_token_logout_none")
+    token_service.verify_refresh_token.assert_called_once_with(
+        "refresh_token_logout_none"
+    )
     user_repository.get.assert_awaited_once_with(
         db_session,
         id=user_id,

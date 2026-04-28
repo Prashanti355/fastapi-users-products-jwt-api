@@ -27,9 +27,7 @@ class PasswordResetTokenService:
         expires_in_minutes: int = 30,
     ) -> PasswordResetToken:
         token = self._generate_token()
-        expires_at = datetime.now(timezone.utc) + timedelta(
-            minutes=expires_in_minutes
-        )
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=expires_in_minutes)
 
         return await self.repository.create(
             db,
@@ -70,7 +68,7 @@ class PasswordResetTokenService:
             db,
             password_reset_token=password_reset_token,
         )
-    
+
     async def get_latest_token_by_user_id(
         self,
         db: AsyncSession,
@@ -80,4 +78,4 @@ class PasswordResetTokenService:
         return await self.repository.get_latest_by_user_id(
             db,
             user_id=user_id,
-        )    
+        )

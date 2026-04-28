@@ -107,7 +107,9 @@ async def test_get_user_by_id_success(user_service, user_repository, db_session)
 
 
 @pytest.mark.asyncio
-async def test_get_user_by_id_raises_when_not_found(user_service, user_repository, db_session):
+async def test_get_user_by_id_raises_when_not_found(
+    user_service, user_repository, db_session
+):
     user_repository.get.return_value = None
 
     with pytest.raises(UserNotFoundException):
@@ -119,7 +121,9 @@ async def test_create_user_success(user_service, user_repository, db_session, mo
     user_repository.get_by_email.return_value = None
     user_repository.get_by_username.return_value = None
     user_repository.create.return_value = build_user()
-    mocker.patch("app.services.user_service.get_password_hash", return_value="hashed_pw")
+    mocker.patch(
+        "app.services.user_service.get_password_hash", return_value="hashed_pw"
+    )
 
     user_in = FakeSchema(
         first_name="Maya",
@@ -141,7 +145,9 @@ async def test_create_user_success(user_service, user_repository, db_session, mo
 
 
 @pytest.mark.asyncio
-async def test_create_user_raises_when_email_already_exists(user_service, user_repository, db_session):
+async def test_create_user_raises_when_email_already_exists(
+    user_service, user_repository, db_session
+):
     user_repository.get_by_email.return_value = build_user(email="maya@example.com")
 
     user_in = FakeSchema(
@@ -155,7 +161,9 @@ async def test_create_user_raises_when_email_already_exists(user_service, user_r
 
 
 @pytest.mark.asyncio
-async def test_create_user_raises_when_username_already_exists(user_service, user_repository, db_session):
+async def test_create_user_raises_when_username_already_exists(
+    user_service, user_repository, db_session
+):
     user_repository.get_by_email.return_value = None
     user_repository.get_by_username.return_value = build_user(username="maya")
 
@@ -176,7 +184,9 @@ async def test_update_user_success(user_service, user_repository, db_session, mo
     user_repository.get_by_email.return_value = None
     user_repository.get_by_username.return_value = None
     user_repository.update.return_value = user
-    mocker.patch("app.services.user_service.get_password_hash", return_value="hashed_pw")
+    mocker.patch(
+        "app.services.user_service.get_password_hash", return_value="hashed_pw"
+    )
 
     current_user = build_current_user(user_id=user.id, is_superuser=False)
 
@@ -204,7 +214,9 @@ async def test_update_user_success(user_service, user_repository, db_session, mo
 
 
 @pytest.mark.asyncio
-async def test_update_user_raises_when_normal_user_modifies_privileged_fields(user_service, user_repository, db_session):
+async def test_update_user_raises_when_normal_user_modifies_privileged_fields(
+    user_service, user_repository, db_session
+):
     user = build_user(role="user", is_superuser=False, is_active=True)
     user_repository.get.return_value = user
     user_repository.get_by_email.return_value = None
@@ -233,7 +245,9 @@ async def test_update_user_raises_when_normal_user_modifies_privileged_fields(us
 
 
 @pytest.mark.asyncio
-async def test_partial_update_user_success_for_non_privileged_fields(user_service, user_repository, db_session):
+async def test_partial_update_user_success_for_non_privileged_fields(
+    user_service, user_repository, db_session
+):
     user = build_user(role="user", is_superuser=False, is_active=True)
     user_repository.get.return_value = user
     user_repository.update.return_value = user
@@ -261,7 +275,9 @@ async def test_partial_update_user_success_for_non_privileged_fields(user_servic
 
 
 @pytest.mark.asyncio
-async def test_partial_update_user_raises_when_normal_user_modifies_privileged_fields(user_service, user_repository, db_session):
+async def test_partial_update_user_raises_when_normal_user_modifies_privileged_fields(
+    user_service, user_repository, db_session
+):
     user = build_user(role="user", is_superuser=False, is_active=True)
     user_repository.get.return_value = user
 
@@ -283,12 +299,16 @@ async def test_partial_update_user_raises_when_normal_user_modifies_privileged_f
 
 
 @pytest.mark.asyncio
-async def test_change_password_success(user_service, user_repository, db_session, mocker):
+async def test_change_password_success(
+    user_service, user_repository, db_session, mocker
+):
     user = build_user(password="hashed_pw")
     user_repository.get.return_value = user
     user_repository.update.return_value = user
     mocker.patch("app.services.user_service.verify_password", return_value=True)
-    mocker.patch("app.services.user_service.get_password_hash", return_value="new_hashed_pw")
+    mocker.patch(
+        "app.services.user_service.get_password_hash", return_value="new_hashed_pw"
+    )
 
     password_data = SimpleNamespace(
         current_password="Clave1234",
@@ -308,7 +328,9 @@ async def test_change_password_success(user_service, user_repository, db_session
 
 
 @pytest.mark.asyncio
-async def test_change_password_raises_when_current_password_is_invalid(user_service, user_repository, db_session, mocker):
+async def test_change_password_raises_when_current_password_is_invalid(
+    user_service, user_repository, db_session, mocker
+):
     user = build_user(password="hashed_pw")
     user_repository.get.return_value = user
     mocker.patch("app.services.user_service.verify_password", return_value=False)
@@ -328,7 +350,9 @@ async def test_change_password_raises_when_current_password_is_invalid(user_serv
 
 
 @pytest.mark.asyncio
-async def test_change_password_raises_when_confirmation_does_not_match(user_service, user_repository, db_session, mocker):
+async def test_change_password_raises_when_confirmation_does_not_match(
+    user_service, user_repository, db_session, mocker
+):
     user = build_user(password="hashed_pw")
     user_repository.get.return_value = user
     mocker.patch("app.services.user_service.verify_password", return_value=True)
@@ -381,7 +405,9 @@ async def test_restore_user_success(user_service, user_repository, db_session):
 
 
 @pytest.mark.asyncio
-async def test_restore_user_raises_when_user_was_not_deleted(user_service, user_repository, db_session):
+async def test_restore_user_raises_when_user_was_not_deleted(
+    user_service, user_repository, db_session
+):
     user = build_user(is_deleted=False)
     user_repository.get.return_value = user
 
@@ -390,7 +416,9 @@ async def test_restore_user_raises_when_user_was_not_deleted(user_service, user_
 
 
 @pytest.mark.asyncio
-async def test_activate_user_raises_when_already_active(user_service, user_repository, db_session):
+async def test_activate_user_raises_when_already_active(
+    user_service, user_repository, db_session
+):
     user = build_user(is_active=True)
     user_repository.get.return_value = user
 
@@ -399,7 +427,9 @@ async def test_activate_user_raises_when_already_active(user_service, user_repos
 
 
 @pytest.mark.asyncio
-async def test_deactivate_user_raises_when_already_inactive(user_service, user_repository, db_session):
+async def test_deactivate_user_raises_when_already_inactive(
+    user_service, user_repository, db_session
+):
     user = build_user(is_active=False)
     user_repository.get.return_value = user
 
@@ -506,7 +536,7 @@ async def test_partial_update_user_hashes_password_when_present(
 
 
 @pytest.mark.asyncio
-async def test_change_password_raises_when_current_password_is_invalid(
+async def test_change_password_raises_when_current_password_is_invalid_for_existing_user(
     user_service,
     user_repository,
     db_session,
