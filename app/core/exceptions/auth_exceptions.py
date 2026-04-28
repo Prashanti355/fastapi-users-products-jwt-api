@@ -25,9 +25,7 @@ class ExpiredTokenException(AppException):
 
 
 class InsufficientPermissionsException(AppException):
-    def __init__(
-        self, message: str = "No tiene permisos suficientes para realizar esta acción."
-    ):
+    def __init__(self, message: str = "No tiene permisos suficientes para realizar esta acción."):
         super().__init__(message=message, code=403)
 
 

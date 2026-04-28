@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -33,7 +33,7 @@ def build_audit_log_payload(
 @pytest.mark.asyncio
 async def test_audit_log_repository_create_persists_and_returns_log(db_session):
     repo = AuditLogRepository()
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
     payload = build_audit_log_payload(
         action="login",
         entity="auth",
@@ -62,7 +62,7 @@ async def test_audit_log_repository_get_multi_without_filters_returns_paginated_
     db_session,
 ):
     repo = AuditLogRepository()
-    base_time = datetime.now(timezone.utc)
+    base_time = datetime.now(UTC)
 
     await repo.create(
         db_session,
@@ -114,7 +114,7 @@ async def test_audit_log_repository_get_multi_without_filters_returns_paginated_
 @pytest.mark.asyncio
 async def test_audit_log_repository_get_multi_applies_all_supported_filters(db_session):
     repo = AuditLogRepository()
-    base_time = datetime.now(timezone.utc)
+    base_time = datetime.now(UTC)
     suffix = uuid4().hex[:6]
 
     target_request_id = f"req-{suffix}"
@@ -218,7 +218,7 @@ async def test_audit_log_repository_get_multi_supports_alternate_sort_fields_and
     db_session,
 ):
     repo = AuditLogRepository()
-    base_time = datetime.now(timezone.utc)
+    base_time = datetime.now(UTC)
     suffix = uuid4().hex[:6]
     shared_request_id = f"req-sort-{suffix}"
 
@@ -269,7 +269,7 @@ async def test_audit_log_repository_get_multi_falls_back_to_created_at_when_sort
     db_session,
 ):
     repo = AuditLogRepository()
-    base_time = datetime.now(timezone.utc)
+    base_time = datetime.now(UTC)
     suffix = uuid4().hex[:6]
 
     older = await repo.create(
@@ -305,9 +305,7 @@ async def test_audit_log_repository_get_multi_falls_back_to_created_at_when_sort
         order="desc",
     )
 
-    filtered_items = [
-        item for item in result["items"] if item.id in {older.id, newer.id}
-    ]
+    filtered_items = [item for item in result["items"] if item.id in {older.id, newer.id}]
 
     assert len(filtered_items) == 2
     assert filtered_items[0].id == newer.id

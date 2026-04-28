@@ -1,8 +1,9 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.exceptions.auth_exceptions import (
     InactiveUserException,
     InvalidCredentialsException,
@@ -15,18 +16,15 @@ from app.core.exceptions.user_exceptions import (
 from app.core.security import get_password_hash, verify_password
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
-from app.services.token_service import TokenService
-
 from app.schemas.auth import (
     CurrentUser,
     LoginRequest,
     PublicRegisterRequest,
     TokenResponse,
 )
-from app.core.config import settings
 from app.services.email_service import EmailService
-
 from app.services.password_reset_token_service import PasswordResetTokenService
+from app.services.token_service import TokenService
 
 
 class AuthService:
@@ -65,7 +63,7 @@ class AuthService:
             return
 
         token_data = self.token_service.verify_refresh_token(refresh_token)
-        expires_at = datetime.fromtimestamp(token_data.exp, tz=timezone.utc)
+        expires_at = datetime.fromtimestamp(token_data.exp, tz=UTC)
 
         await self.refresh_token_service.register_token(
             db,
@@ -74,9 +72,7 @@ class AuthService:
             expires_at=expires_at,
         )
 
-    async def login(
-        self, db: AsyncSession, *, login_data: LoginRequest
-    ) -> TokenResponse:
+    async def login(self, db: AsyncSession, *, login_data: LoginRequest) -> TokenResponse:
         """
         Autentica al usuario con username + password
         y genera un nuevo par de tokens JWT.
@@ -92,7 +88,7 @@ class AuthService:
         if not user.is_active or user.is_deleted:
             raise InactiveUserException()
 
-        user.last_login = datetime.now(timezone.utc)
+        user.last_login = datetime.now(UTC)
         db.add(user)
         await db.commit()
         await db.refresh(user)
@@ -113,26 +109,18 @@ class AuthService:
         """
         Registra un nuevo usuario y genera tokens JWT inmediatamente.
         """
-        existing_user = await self.user_repo.get_by_username(
-            db, username=user_data.username
-        )
+        existing_user = await self.user_repo.get_by_username(db, username=user_data.username)
         if existing_user:
-            raise UserAlreadyExistsException(
-                conflict_type="username", value=user_data.username
-            )
+            raise UserAlreadyExistsException(conflict_type="username", value=user_data.username)
 
         if user_data.email:
-            existing_email = await self.user_repo.get_by_email(
-                db, email=user_data.email
-            )
+            existing_email = await self.user_repo.get_by_email(db, email=user_data.email)
             if existing_email:
-                raise UserAlreadyExistsException(
-                    conflict_type="email", value=user_data.email
-                )
+                raise UserAlreadyExistsException(conflict_type="email", value=user_data.email)
 
         user_dict = user_data.model_dump()
         user_dict["password"] = get_password_hash(user_data.password)
-        user_dict["last_login"] = datetime.now(timezone.utc)
+        user_dict["last_login"] = datetime.now(UTC)
 
         # Endurecimiento de seguridad:
         # el registro público nunca debe crear superusuarios
@@ -169,9 +157,7 @@ class AuthService:
 
         return tokens
 
-    async def refresh_token(
-        self, db: AsyncSession, *, refresh_token: str
-    ) -> TokenResponse:
+    async def refresh_token(self, db: AsyncSession, *, refresh_token: str) -> TokenResponse:
         """
         Genera un nuevo par de tokens usando un refresh token válido.
         Si el servicio de refresh tokens está disponible, valida el token
@@ -192,9 +178,7 @@ class AuthService:
         user = await self.user_repo.get(db, id=UUID(token_data.sub))
 
         if not user:
-            raise TokenRefreshException(
-                message="El usuario asociado al token ya no existe."
-            )
+            raise TokenRefreshException(message="El usuario asociado al token ya no existe.")
 
         if not user.is_active or user.is_deleted:
             raise InactiveUserException()
@@ -225,9 +209,7 @@ class AuthService:
         user = await self.user_repo.get(db, id=UUID(token_data.sub))
 
         if not user:
-            raise InvalidTokenException(
-                message="El usuario asociado al token no existe."
-            )
+            raise InvalidTokenException(message="El usuario asociado al token no existe.")
 
         if not user.is_active or user.is_deleted:
             raise InactiveUserException()
@@ -321,9 +303,7 @@ class AuthService:
             and settings.FRONTEND_RESET_PASSWORD_URL
             and user.email
         ):
-            reset_link = (
-                f"{settings.FRONTEND_RESET_PASSWORD_URL}?token={db_token.token}"
-            )
+            reset_link = f"{settings.FRONTEND_RESET_PASSWORD_URL}?token={db_token.token}"
 
             try:
                 result = self.email_service.send_password_reset_email(
@@ -383,9 +363,7 @@ class AuthService:
         )
 
         if user is None:
-            raise InvalidTokenException(
-                message="El usuario asociado al token no existe."
-            )
+            raise InvalidTokenException(message="El usuario asociado al token no existe.")
 
         if not user.is_active or user.is_deleted:
             raise InactiveUserException()

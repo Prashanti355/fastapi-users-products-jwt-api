@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query, status
@@ -20,10 +19,12 @@ from app.schemas.user import (
     UserCreateRequest,
     UserDeleteResult,
     UserPartialUpdateRequest,
-    UserRead as UserSchema,
     UserRestoreResult,
     UserToggleActiveResult,
     UserUpdateRequest,
+)
+from app.schemas.user import (
+    UserRead as UserSchema,
 )
 from app.services.audit_log_service import AuditLogService
 from app.services.user_service import UserService
@@ -56,8 +57,8 @@ async def list_users(
     limit: int = Query(10, ge=1, le=100, description="Registros por página"),
     sort_by: str = Query("created_at", description="Campo por el cual ordenar"),
     order: str = Query("desc", description="Dirección del ordenamiento"),
-    search: Optional[str] = Query(None, description="Búsqueda general"),
-    is_active: Optional[bool] = Query(None, description="Filtrar por estado activo"),
+    search: str | None = Query(None, description="Búsqueda general"),
+    is_active: bool | None = Query(None, description="Filtrar por estado activo"),
     user_service: UserService = Depends(get_user_service),
     current_user: CurrentUser = Depends(get_current_superuser),
 ):
@@ -91,15 +92,11 @@ async def get_user(
     user_service: UserService = Depends(get_user_service),
     current_user: CurrentUser = Depends(get_current_active_user),
 ):
-    _ensure_self_or_superuser(
-        current_user, user_id, "Solo puede consultar su propio usuario."
-    )
+    _ensure_self_or_superuser(current_user, user_id, "Solo puede consultar su propio usuario.")
 
     user = await user_service.get_user_by_id(db, user_id=user_id)
 
-    return ApiResponse(
-        codigo=200, mensaje="Usuario obtenido correctamente.", resultado=user
-    )
+    return ApiResponse(codigo=200, mensaje="Usuario obtenido correctamente.", resultado=user)
 
 
 @router.post(
@@ -128,9 +125,7 @@ async def create_user(
         detail=f"Usuario creado por superusuario: {user.username}",
     )
 
-    return ApiResponse(
-        codigo=201, mensaje="Usuario creado correctamente.", resultado=user
-    )
+    return ApiResponse(codigo=201, mensaje="Usuario creado correctamente.", resultado=user)
 
 
 @router.put(
@@ -148,9 +143,7 @@ async def update_user(
     current_user: CurrentUser = Depends(get_current_active_user),
     request_id: str | None = Depends(get_request_id),
 ):
-    _ensure_self_or_superuser(
-        current_user, user_id, "Solo puede actualizar su propio usuario."
-    )
+    _ensure_self_or_superuser(current_user, user_id, "Solo puede actualizar su propio usuario.")
 
     user = await user_service.update_user(
         db, user_id=user_id, user_in=user_in, current_user=current_user
@@ -166,9 +159,7 @@ async def update_user(
         detail=f"Actualización completa del usuario {user.username}",
     )
 
-    return ApiResponse(
-        codigo=200, mensaje="Usuario actualizado correctamente.", resultado=user
-    )
+    return ApiResponse(codigo=200, mensaje="Usuario actualizado correctamente.", resultado=user)
 
 
 @router.patch(
@@ -186,9 +177,7 @@ async def partial_update_user(
     current_user: CurrentUser = Depends(get_current_active_user),
     request_id: str | None = Depends(get_request_id),
 ):
-    _ensure_self_or_superuser(
-        current_user, user_id, "Solo puede actualizar su propio usuario."
-    )
+    _ensure_self_or_superuser(current_user, user_id, "Solo puede actualizar su propio usuario.")
 
     user = await user_service.partial_update_user(
         db, user_id=user_id, user_in=user_in, current_user=current_user
@@ -204,9 +193,7 @@ async def partial_update_user(
         detail=f"Actualización parcial del usuario {user.username}",
     )
 
-    return ApiResponse(
-        codigo=200, mensaje="Usuario actualizado parcialmente.", resultado=user
-    )
+    return ApiResponse(codigo=200, mensaje="Usuario actualizado parcialmente.", resultado=user)
 
 
 @router.post(
@@ -225,9 +212,7 @@ async def change_password(
     request_id: str | None = Depends(get_request_id),
 ):
     if current_user.id != user_id:
-        raise InsufficientPermissionsException(
-            message="Solo puede cambiar su propia contraseña."
-        )
+        raise InsufficientPermissionsException(message="Solo puede cambiar su propia contraseña.")
 
     await user_service.change_password(db, user_id=user_id, password_data=password_data)
 
@@ -330,9 +315,7 @@ async def delete_user(
     current_user: CurrentUser = Depends(get_current_superuser),
     request_id: str | None = Depends(get_request_id),
 ):
-    user = await user_service.delete_user(
-        db, user_id=user_id, deleted_by=current_user.id
-    )
+    user = await user_service.delete_user(db, user_id=user_id, deleted_by=current_user.id)
 
     await audit_log_service.log_event(
         db,

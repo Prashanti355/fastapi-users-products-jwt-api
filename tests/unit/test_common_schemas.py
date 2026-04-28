@@ -1,16 +1,13 @@
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 from app.schemas.common import (
     PagedResult,
     PaginationParams,
     SearchParams,
-    SortOrder,
     SortingParams,
+    SortOrder,
 )
-
-
-from pydantic import BaseModel, ConfigDict
 
 
 class DummyItemSchema(BaseModel):

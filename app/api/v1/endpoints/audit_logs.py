@@ -1,13 +1,12 @@
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.dependencies import get_audit_log_service, get_current_superuser
-from app.schemas.auth import CurrentUser
 from app.schemas.audit_log import AuditLogRead
+from app.schemas.auth import CurrentUser
 from app.schemas.response import ApiResponse, PagedResponse
 from app.services.audit_log_service import AuditLogService
 
@@ -23,13 +22,13 @@ router = APIRouter()
 )
 async def list_audit_logs(
     db: AsyncSession = Depends(get_db),
-    action: Optional[str] = Query(None),
-    entity: Optional[str] = Query(None),
-    actor_username: Optional[str] = Query(None),
-    status_filter: Optional[str] = Query(None, alias="status"),
-    request_id: Optional[str] = Query(None),
-    date_from: Optional[datetime] = Query(None),
-    date_to: Optional[datetime] = Query(None),
+    action: str | None = Query(None),
+    entity: str | None = Query(None),
+    actor_username: str | None = Query(None),
+    status_filter: str | None = Query(None, alias="status"),
+    request_id: str | None = Query(None),
+    date_from: datetime | None = Query(None),
+    date_to: datetime | None = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100),
     sort_by: str = Query("created_at"),

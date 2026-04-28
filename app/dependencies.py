@@ -79,9 +79,7 @@ async def get_refresh_token_service(
 
 
 def get_password_reset_token_service(
-    repository: PasswordResetTokenRepository = Depends(
-        get_password_reset_token_repository
-    ),
+    repository: PasswordResetTokenRepository = Depends(get_password_reset_token_repository),
 ) -> PasswordResetTokenService:
     return PasswordResetTokenService(repository)
 
@@ -116,9 +114,7 @@ async def get_current_superuser(
     current_user: CurrentUser = Depends(get_current_active_user),
 ) -> CurrentUser:
     if not current_user.is_superuser:
-        raise InsufficientPermissionsException(
-            message="Se requieren privilegios de superusuario."
-        )
+        raise InsufficientPermissionsException(message="Se requieren privilegios de superusuario.")
     return current_user
 
 

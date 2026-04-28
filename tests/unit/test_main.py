@@ -33,9 +33,7 @@ def test_app_configuration_matches_expected_values():
 
 
 def test_app_registers_expected_middlewares():
-    middleware_classes = {
-        middleware.cls for middleware in main_module.app.user_middleware
-    }
+    middleware_classes = {middleware.cls for middleware in main_module.app.user_middleware}
 
     assert RequestLoggingMiddleware in middleware_classes
     assert CORSMiddleware in middleware_classes
@@ -44,13 +42,9 @@ def test_app_registers_expected_middlewares():
 def test_app_registers_expected_exception_handlers():
     assert main_module.app.exception_handlers[AppException] is app_exception_handler
     assert (
-        main_module.app.exception_handlers[RequestValidationError]
-        is validation_exception_handler
+        main_module.app.exception_handlers[RequestValidationError] is validation_exception_handler
     )
-    assert (
-        main_module.app.exception_handlers[RateLimitExceeded]
-        is _rate_limit_exceeded_handler
-    )
+    assert main_module.app.exception_handlers[RateLimitExceeded] is _rate_limit_exceeded_handler
 
 
 def test_app_includes_api_router_with_expected_prefix_routes():

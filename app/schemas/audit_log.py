@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -11,24 +10,24 @@ class AuditLogRead(BaseModel):
     id: UUID
     action: str
     entity: str
-    entity_id: Optional[str] = None
-    actor_id: Optional[str] = None
-    actor_username: Optional[str] = None
-    actor_role: Optional[str] = None
-    request_id: Optional[str] = None
+    entity_id: str | None = None
+    actor_id: str | None = None
+    actor_username: str | None = None
+    actor_role: str | None = None
+    request_id: str | None = None
     status: str
-    detail: Optional[str] = None
+    detail: str | None = None
     created_at: datetime
 
 
 class AuditLogFilterParams(BaseModel):
-    action: Optional[str] = None
-    entity: Optional[str] = None
-    actor_username: Optional[str] = None
-    status: Optional[str] = None
-    request_id: Optional[str] = None
-    date_from: Optional[datetime] = None
-    date_to: Optional[datetime] = None
+    action: str | None = None
+    entity: str | None = None
+    actor_username: str | None = None
+    status: str | None = None
+    request_id: str | None = None
+    date_from: datetime | None = None
+    date_to: datetime | None = None
     page: int = Field(default=1, ge=1)
     limit: int = Field(default=10, ge=1, le=100)
     sort_by: str = "created_at"

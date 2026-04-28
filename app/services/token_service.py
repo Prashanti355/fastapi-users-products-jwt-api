@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from jose import JWTError, jwt
@@ -32,7 +32,7 @@ class TokenService:
         expires_delta: timedelta,
         include_jti: bool = False,
     ) -> tuple[dict, datetime]:
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
         expires_at = now_utc + expires_delta
 
         payload = {
@@ -133,9 +133,7 @@ class TokenService:
                 algorithms=[settings.ALGORITHM],
             )
         except JWTError as exc:
-            raise TokenRefreshException(
-                message="Refresh token inválido o expirado."
-            ) from exc
+            raise TokenRefreshException(message="Refresh token inválido o expirado.") from exc
 
         if payload.get("token_type") != "refresh":
             raise TokenRefreshException(

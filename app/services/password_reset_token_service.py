@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,7 +27,7 @@ class PasswordResetTokenService:
         expires_in_minutes: int = 30,
     ) -> PasswordResetToken:
         token = self._generate_token()
-        expires_at = datetime.now(timezone.utc) + timedelta(minutes=expires_in_minutes)
+        expires_at = datetime.now(UTC) + timedelta(minutes=expires_in_minutes)
 
         return await self.repository.create(
             db,
@@ -53,7 +53,7 @@ class PasswordResetTokenService:
         if db_token.used_at is not None:
             return None
 
-        if db_token.expires_at < datetime.now(timezone.utc):
+        if db_token.expires_at < datetime.now(UTC):
             return None
 
         return db_token

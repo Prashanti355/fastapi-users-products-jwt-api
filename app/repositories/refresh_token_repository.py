@@ -1,15 +1,10 @@
-from datetime import datetime
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.refresh_token import RefreshToken
-
-from datetime import timedelta, timezone
-
-from sqlalchemy import delete, or_
 
 
 class RefreshTokenRepository:
@@ -30,7 +25,7 @@ class RefreshTokenRepository:
         db: AsyncSession,
         *,
         jti: str,
-    ) -> Optional[RefreshToken]:
+    ) -> RefreshToken | None:
         result = await db.execute(select(RefreshToken).where(RefreshToken.jti == jti))
         return result.scalar_one_or_none()
 
@@ -41,7 +36,7 @@ class RefreshTokenRepository:
         jti: str,
         revoked_at: datetime,
         revoke_reason: str | None = None,
-    ) -> Optional[RefreshToken]:
+    ) -> RefreshToken | None:
         token = await self.get_by_jti(db, jti=jti)
         if token is None:
             return None
@@ -95,7 +90,7 @@ class RefreshTokenRepository:
 
         Retorna el número de filas eliminadas.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         revoked_cutoff = now - timedelta(days=revoked_older_than_days)
 
         statement = delete(RefreshToken).where(

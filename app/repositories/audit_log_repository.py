@@ -69,9 +69,7 @@ class AuditLogRepository:
         }
 
         sort_column = sortable_fields.get(sort_by, AuditLog.created_at)
-        sort_expression = (
-            desc(sort_column) if order.lower() == "desc" else asc(sort_column)
-        )
+        sort_expression = desc(sort_column) if order.lower() == "desc" else asc(sort_column)
 
         total_stmt = select(func.count()).select_from(AuditLog)
         items_stmt = select(AuditLog)

@@ -4,38 +4,38 @@ from fastapi import APIRouter, Body, Depends, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_user_repository
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.exceptions.auth_exceptions import (
+    InvalidTokenException,
+)
 from app.core.rate_limit import limiter
 from app.dependencies import (
     get_audit_log_service,
     get_auth_service,
     get_current_active_user,
     get_current_superuser,
+    get_password_reset_token_service,
     get_request_id,
     get_token_service,
+    get_user_repository,
 )
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import (
     CurrentUser,
+    ForgotPasswordRequest,
     LoginRequest,
+    PasswordResetDebugResult,
     PublicRegisterRequest,
     RefreshTokenRequest,
-    TokenResponse,
-    ForgotPasswordRequest,
     ResetPasswordRequest,
-)
-from app.core.exceptions.auth_exceptions import (
-    InvalidTokenException,
+    TokenResponse,
 )
 from app.schemas.response import ApiResponse, ApiResponseSimple
 from app.services.audit_log_service import AuditLogService
 from app.services.auth_service import AuthService
-from app.services.token_service import TokenService
 from app.services.password_reset_token_service import PasswordResetTokenService
-from app.dependencies import get_password_reset_token_service
-from app.schemas.auth import PasswordResetDebugResult
+from app.services.token_service import TokenService
 
 router = APIRouter()
 
@@ -86,9 +86,7 @@ async def login(
 async def register(
     request: Request,
     response: Response,
-    user_data: PublicRegisterRequest = Body(
-        ..., description="Datos públicos del nuevo usuario"
-    ),
+    user_data: PublicRegisterRequest = Body(..., description="Datos públicos del nuevo usuario"),
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
@@ -129,9 +127,7 @@ async def refresh_token(
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     request_id: str | None = Depends(get_request_id),
 ):
-    tokens = await auth_service.refresh_token(
-        db, refresh_token=refresh_data.refresh_token
-    )
+    tokens = await auth_service.refresh_token(db, refresh_token=refresh_data.refresh_token)
 
     current_user = await auth_service.get_current_user(db, token=tokens.access_token)
 
@@ -278,9 +274,7 @@ async def debug_last_reset_token(
     )
 
     if db_token is None:
-        raise InvalidTokenException(
-            message="Ese usuario no tiene tokens de recuperación."
-        )
+        raise InvalidTokenException(message="Ese usuario no tiene tokens de recuperación.")
 
     return ApiResponse[PasswordResetDebugResult](
         codigo=200,

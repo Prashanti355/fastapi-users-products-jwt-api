@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from app.core.database import engine
-from app.services.refresh_token_service import RefreshTokenService
 from app.repositories.refresh_token_repository import RefreshTokenRepository
+from app.services.refresh_token_service import RefreshTokenService
 
 
 async def run_cleanup(revoked_older_than_days: int) -> int:

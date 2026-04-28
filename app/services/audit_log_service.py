@@ -1,5 +1,3 @@
-from typing import Optional
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.audit_log_repository import AuditLogRepository
@@ -16,11 +14,11 @@ class AuditLogService:
         *,
         action: str,
         entity: str,
-        entity_id: Optional[str] = None,
-        actor: Optional[CurrentUser] = None,
-        request_id: Optional[str] = None,
+        entity_id: str | None = None,
+        actor: CurrentUser | None = None,
+        request_id: str | None = None,
         status: str = "success",
-        detail: Optional[str] = None,
+        detail: str | None = None,
     ):
         payload = {
             "action": action,

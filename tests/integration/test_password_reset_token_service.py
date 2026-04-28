@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -100,7 +100,7 @@ async def test_password_reset_token_service_rejects_expired_token(
         id=uuid4(),
         token=f"expired-{uuid4().hex}",
         user_id=user.id,
-        expires_at=datetime.now(timezone.utc) - timedelta(minutes=5),
+        expires_at=datetime.now(UTC) - timedelta(minutes=5),
         used_at=None,
     )
 

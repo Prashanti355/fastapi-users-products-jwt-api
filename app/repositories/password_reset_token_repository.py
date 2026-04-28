@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,7 +41,7 @@ class PasswordResetTokenRepository:
         *,
         password_reset_token: PasswordResetToken,
     ) -> PasswordResetToken:
-        password_reset_token.used_at = datetime.now(timezone.utc)
+        password_reset_token.used_at = datetime.now(UTC)
         db.add(password_reset_token)
         await db.commit()
         await db.refresh(password_reset_token)

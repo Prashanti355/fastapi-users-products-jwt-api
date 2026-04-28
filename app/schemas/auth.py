@@ -1,6 +1,6 @@
 from datetime import date, datetime
-from typing import Optional
 from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, field_validator
 
 from app.schemas.user import Gender
@@ -27,21 +27,21 @@ class PublicRegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
 
-    profile_picture: Optional[HttpUrl] = None
-    nationality: Optional[str] = Field(None, max_length=7)
-    occupation: Optional[str] = Field(None, max_length=17)
-    date_of_birth: Optional[date] = None
-    contact_phone_number: Optional[str] = Field(None, max_length=20)
-    gender: Optional[Gender] = None
+    profile_picture: HttpUrl | None = None
+    nationality: str | None = Field(None, max_length=7)
+    occupation: str | None = Field(None, max_length=17)
+    date_of_birth: date | None = None
+    contact_phone_number: str | None = Field(None, max_length=20)
+    gender: Gender | None = None
 
-    address: Optional[str] = None
-    address_number: Optional[str] = Field(None, max_length=25)
-    address_interior_number: Optional[str] = Field(None, max_length=26)
-    address_complement: Optional[str] = None
-    address_neighborhood: Optional[str] = None
-    address_zip_code: Optional[str] = Field(None, max_length=10)
-    address_city: Optional[str] = Field(None, max_length=100)
-    address_state: Optional[str] = Field(None, max_length=100)
+    address: str | None = None
+    address_number: str | None = Field(None, max_length=25)
+    address_interior_number: str | None = Field(None, max_length=26)
+    address_complement: str | None = None
+    address_neighborhood: str | None = None
+    address_zip_code: str | None = Field(None, max_length=10)
+    address_city: str | None = Field(None, max_length=100)
+    address_state: str | None = Field(None, max_length=100)
 
     @field_validator("password")
     @classmethod
@@ -50,9 +50,7 @@ class PublicRegisterRequest(BaseModel):
         has_digit = any(ch.isdigit() for ch in v)
 
         if not (has_letter and has_digit):
-            raise ValueError(
-                "La contraseña debe incluir al menos una letra y un número."
-            )
+            raise ValueError("La contraseña debe incluir al menos una letra y un número.")
         return v
 
 
@@ -64,9 +62,7 @@ class TokenResponse(BaseModel):
     access_token: str = Field(..., description="Token JWT de acceso")
     refresh_token: str = Field(..., description="Token JWT de refresco")
     token_type: str = Field(default="bearer", description="Tipo de token")
-    expires_in: int = Field(
-        ..., description="Tiempo de expiración del access token en segundos"
-    )
+    expires_in: int = Field(..., description="Tiempo de expiración del access token en segundos")
 
 
 class RefreshTokenRequest(BaseModel):
@@ -83,13 +79,13 @@ class TokenData(BaseModel):
     Datos decodificados del token JWT (claims internos).
     """
 
-    sub: Optional[str] = None
-    username: Optional[str] = None
-    role: Optional[str] = None
+    sub: str | None = None
+    username: str | None = None
+    role: str | None = None
     is_superuser: bool = False
-    token_type: Optional[str] = None
-    exp: Optional[int] = None
-    jti: Optional[str] = None
+    token_type: str | None = None
+    exp: int | None = None
+    jti: str | None = None
 
 
 class CurrentUser(BaseModel):
@@ -100,8 +96,8 @@ class CurrentUser(BaseModel):
 
     id: UUID
     username: str
-    email: Optional[EmailStr] = None
-    role: Optional[str] = None
+    email: EmailStr | None = None
+    role: str | None = None
     is_superuser: bool = False
     is_active: bool = True
 

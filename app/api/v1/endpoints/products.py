@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Path, Query, status
@@ -15,6 +14,8 @@ from app.dependencies import (
 from app.schemas.auth import CurrentUser
 from app.schemas.product import (
     Product as ProductSchema,
+)
+from app.schemas.product import (
     ProductBasic,
     ProductCreateRequest,
     ProductDeleteResult,
@@ -41,13 +42,11 @@ async def list_products(
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1, description="Número de página"),
     limit: int = Query(10, ge=1, le=100, description="Registros por página"),
-    search: Optional[str] = Query(
-        None, description="Buscar por nombre, descripción o clave"
-    ),
-    status_filter: Optional[bool] = Query(
+    search: str | None = Query(None, description="Buscar por nombre, descripción o clave"),
+    status_filter: bool | None = Query(
         None, alias="status", description="Filtrar por disponibilidad"
     ),
-    product_type: Optional[str] = Query(
+    product_type: str | None = Query(
         None, alias="type", description="Filtrar por tipo de producto"
     ),
     sort_by: str = Query("created_at", description="Campo por el cual ordenar"),
@@ -110,9 +109,7 @@ async def get_product_by_id(
 )
 async def create_product(
     db: AsyncSession = Depends(get_db),
-    product_data: ProductCreateRequest = Body(
-        ..., description="Datos del nuevo producto"
-    ),
+    product_data: ProductCreateRequest = Body(..., description="Datos del nuevo producto"),
     service: ProductService = Depends(get_product_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_active_user),
@@ -147,17 +144,13 @@ async def create_product(
 async def update_product(
     db: AsyncSession = Depends(get_db),
     id: UUID = Path(..., description="ID del producto a actualizar"),
-    product_data: ProductUpdateRequest = Body(
-        ..., description="Datos completos del producto"
-    ),
+    product_data: ProductUpdateRequest = Body(..., description="Datos completos del producto"),
     service: ProductService = Depends(get_product_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_active_user),
     request_id: str | None = Depends(get_request_id),
 ):
-    updated_product = await service.update_product(
-        db, product_id=id, obj_in=product_data
-    )
+    updated_product = await service.update_product(db, product_id=id, obj_in=product_data)
 
     await audit_log_service.log_event(
         db,
@@ -194,9 +187,7 @@ async def partial_update_product(
     current_user: CurrentUser = Depends(get_current_active_user),
     request_id: str | None = Depends(get_request_id),
 ):
-    updated_product = await service.update_product(
-        db, product_id=id, obj_in=product_data
-    )
+    updated_product = await service.update_product(db, product_id=id, obj_in=product_data)
 
     await audit_log_service.log_event(
         db,

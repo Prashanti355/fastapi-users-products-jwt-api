@@ -1,5 +1,4 @@
 from datetime import date, datetime
-from typing import Optional
 from uuid import UUID, uuid4
 
 import sqlalchemy as sa
@@ -12,16 +11,12 @@ class User(SQLModel, table=True):
 
     id: UUID = Field(
         default_factory=uuid4,
-        sa_column=Column(
-            sa.UUID(as_uuid=True), primary_key=True, nullable=False, index=True
-        ),
+        sa_column=Column(sa.UUID(as_uuid=True), primary_key=True, nullable=False, index=True),
     )
 
     # Autenticación y seguridad
     username: str = Field(max_length=20, unique=True, nullable=False, index=True)
-    email: Optional[str] = Field(
-        default=None, max_length=254, unique=True, nullable=True, index=True
-    )
+    email: str | None = Field(default=None, max_length=254, unique=True, nullable=True, index=True)
     password: str = Field(max_length=128, nullable=False)
 
     # Estado del usuario
@@ -32,53 +27,39 @@ class User(SQLModel, table=True):
     # Información personal
     first_name: str = Field(max_length=150, nullable=False)
     last_name: str = Field(max_length=150, nullable=False)
-    gender: Optional[str] = Field(default=None, max_length=6, nullable=True)
-    nationality: Optional[str] = Field(default=None, max_length=7, nullable=True)
-    occupation: Optional[str] = Field(default=None, max_length=17, nullable=True)
-    date_of_birth: Optional[date] = Field(
-        default=None, sa_column=Column(sa.Date, nullable=True)
-    )
-    contact_phone_number: Optional[str] = Field(
-        default=None, max_length=20, nullable=True
-    )
-    profile_picture: Optional[str] = Field(default=None, max_length=100, nullable=True)
-    role: Optional[str] = Field(default=None, max_length=24, nullable=True)
+    gender: str | None = Field(default=None, max_length=6, nullable=True)
+    nationality: str | None = Field(default=None, max_length=7, nullable=True)
+    occupation: str | None = Field(default=None, max_length=17, nullable=True)
+    date_of_birth: date | None = Field(default=None, sa_column=Column(sa.Date, nullable=True))
+    contact_phone_number: str | None = Field(default=None, max_length=20, nullable=True)
+    profile_picture: str | None = Field(default=None, max_length=100, nullable=True)
+    role: str | None = Field(default=None, max_length=24, nullable=True)
 
     # Verificación de email
     email_verified: bool = Field(default=False, nullable=False)
-    email_verified_at: Optional[datetime] = Field(
+    email_verified_at: datetime | None = Field(
         default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
     )
 
     # Dirección
-    address: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
-    address_number: Optional[str] = Field(default=None, max_length=25, nullable=True)
-    address_interior_number: Optional[str] = Field(
-        default=None, max_length=26, nullable=True
-    )
-    address_complement: Optional[str] = Field(
-        default=None, sa_column=Column(Text, nullable=True)
-    )
-    address_neighborhood: Optional[str] = Field(
-        default=None, sa_column=Column(Text, nullable=True)
-    )
-    address_zip_code: Optional[str] = Field(default=None, max_length=10, nullable=True)
-    address_city: Optional[str] = Field(default=None, max_length=100, nullable=True)
-    address_state: Optional[str] = Field(default=None, max_length=100, nullable=True)
+    address: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+    address_number: str | None = Field(default=None, max_length=25, nullable=True)
+    address_interior_number: str | None = Field(default=None, max_length=26, nullable=True)
+    address_complement: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+    address_neighborhood: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+    address_zip_code: str | None = Field(default=None, max_length=10, nullable=True)
+    address_city: str | None = Field(default=None, max_length=100, nullable=True)
+    address_state: str | None = Field(default=None, max_length=100, nullable=True)
 
     # Auditoría y tiempos
-    last_login: Optional[datetime] = Field(
+    last_login: datetime | None = Field(
         default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
     )
     date_joined: datetime = Field(
-        sa_column=Column(
-            DateTime(timezone=True), nullable=False, server_default=sa.func.now()
-        )
+        sa_column=Column(DateTime(timezone=True), nullable=False, server_default=sa.func.now())
     )
     created_at: datetime = Field(
-        sa_column=Column(
-            DateTime(timezone=True), nullable=False, server_default=sa.func.now()
-        )
+        sa_column=Column(DateTime(timezone=True), nullable=False, server_default=sa.func.now())
     )
     modified_at: datetime = Field(
         sa_column=Column(
@@ -88,13 +69,13 @@ class User(SQLModel, table=True):
             onupdate=sa.func.now(),
         )
     )
-    deleted_at: Optional[datetime] = Field(
+    deleted_at: datetime | None = Field(
         default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
     )
-    deleted_by: Optional[UUID] = Field(
+    deleted_by: UUID | None = Field(
         default=None, sa_column=Column(sa.UUID(as_uuid=True), nullable=True)
     )
-    deactivation_reason: Optional[str] = Field(
+    deactivation_reason: str | None = Field(
         default=None, sa_column=Column(sa.String(length=255), nullable=True)
     )
 
@@ -107,7 +88,7 @@ class User(SQLModel, table=True):
         return self.is_active and not self.is_deleted
 
     @property
-    def age(self) -> Optional[int]:
+    def age(self) -> int | None:
         if not self.date_of_birth:
             return None
 

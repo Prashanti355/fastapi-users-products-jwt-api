@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -12,14 +12,12 @@ class UserRepository(BaseRepository[User, UserCreateRequest, UserPartialUpdateRe
     def __init__(self):
         super().__init__(User)
 
-    async def get_by_username(
-        self, db: AsyncSession, *, username: str
-    ) -> Optional[User]:
+    async def get_by_username(self, db: AsyncSession, *, username: str) -> User | None:
         statement = select(User).where(User.username == username)
         result = await db.execute(statement)
         return result.scalar_one_or_none()
 
-    async def get_by_email(self, db: AsyncSession, *, email: str) -> Optional[User]:
+    async def get_by_email(self, db: AsyncSession, *, email: str) -> User | None:
         statement = select(User).where(User.email == email)
         result = await db.execute(statement)
         return result.scalar_one_or_none()
@@ -32,10 +30,10 @@ class UserRepository(BaseRepository[User, UserCreateRequest, UserPartialUpdateRe
         limit: int = 10,
         sort_by: str = "created_at",
         order: str = "desc",
-        search: Optional[str] = None,
-        is_active: Optional[bool] = None,
-        is_deleted: bool = False
-    ) -> Dict[str, Any]:
+        search: str | None = None,
+        is_active: bool | None = None,
+        is_deleted: bool = False,
+    ) -> dict[str, Any]:
         filters = {"is_deleted": is_deleted}
         if is_active is not None:
             filters["is_active"] = is_active
@@ -51,9 +49,7 @@ class UserRepository(BaseRepository[User, UserCreateRequest, UserPartialUpdateRe
             search_fields=["username", "email", "first_name", "last_name"],
         )
 
-    async def soft_delete(
-        self, db: AsyncSession, *, user_id: Any, **kwargs
-    ) -> Optional[User]:
+    async def soft_delete(self, db: AsyncSession, *, user_id: Any, **kwargs) -> User | None:
         return await self.soft_remove(db, id=user_id, **kwargs)
 
     async def is_active(self, user: User) -> bool:

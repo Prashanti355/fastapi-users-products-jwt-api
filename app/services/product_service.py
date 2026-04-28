@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,9 +29,7 @@ class ProductService:
         """
         self.product_repo = product_repository
 
-    async def create_product(
-        self, db: AsyncSession, *, obj_in: ProductCreateRequest
-    ) -> Product:
+    async def create_product(self, db: AsyncSession, *, obj_in: ProductCreateRequest) -> Product:
         """
         Registra un nuevo producto validando duplicidad
         de nombre y de clave de producto.
@@ -79,11 +77,11 @@ class ProductService:
         limit: int = 10,
         sort_by: str = "created_at",
         order: str = "desc",
-        search: Optional[str] = None,
-        status: Optional[bool] = None,
-        product_type: Optional[str] = None,
-        is_deleted: bool = False
-    ) -> Dict[str, Any]:
+        search: str | None = None,
+        status: bool | None = None,
+        product_type: str | None = None,
+        is_deleted: bool = False,
+    ) -> dict[str, Any]:
         """
         Obtiene una lista paginada de productos
         con filtros de búsqueda, estado y tipo.
@@ -105,16 +103,14 @@ class ProductService:
         db: AsyncSession,
         *,
         product_id: Any,
-        obj_in: ProductUpdateRequest | ProductPartialUpdateRequest
+        obj_in: ProductUpdateRequest | ProductPartialUpdateRequest,
     ) -> Product:
         """
         Actualiza la información de un producto existente.
         Acepta tanto actualización completa (PUT)
         como parcial (PATCH).
         """
-        db_obj = await self.get_product_by_id(
-            db, product_id=product_id, include_deleted=True
-        )
+        db_obj = await self.get_product_by_id(db, product_id=product_id, include_deleted=True)
 
         update_data = obj_in.model_dump(exclude_unset=True)
 
@@ -125,9 +121,7 @@ class ProductService:
         if "name" in update_data and update_data["name"] != db_obj.name:
             existing = await self.product_repo.get_by_name(db, name=update_data["name"])
             if existing:
-                raise ProductAlreadyExistsException(
-                    conflict_type="name", value=update_data["name"]
-                )
+                raise ProductAlreadyExistsException(conflict_type="name", value=update_data["name"])
 
         if (
             "product_key" in update_data
@@ -146,14 +140,12 @@ class ProductService:
 
     async def delete_product(
         self, db: AsyncSession, *, product_id: Any, hard_delete: bool = False
-    ) -> Optional[Product]:
+    ) -> Product | None:
         """
         Elimina un producto. Puede ser eliminación
         física o lógica.
         """
-        db_obj = await self.get_product_by_id(
-            db, product_id=product_id, include_deleted=True
-        )
+        db_obj = await self.get_product_by_id(db, product_id=product_id, include_deleted=True)
 
         if hard_delete:
             return await self.product_repo.remove(db, id=product_id)
@@ -167,9 +159,7 @@ class ProductService:
         """
         Restaura un producto eliminado lógicamente.
         """
-        db_obj = await self.get_product_by_id(
-            db, product_id=product_id, include_deleted=True
-        )
+        db_obj = await self.get_product_by_id(db, product_id=product_id, include_deleted=True)
 
         if not db_obj.is_deleted:
             raise ProductNotDeletedException()
@@ -187,9 +177,7 @@ class ProductService:
         Activa un producto que estaba no disponible
         o marcado como eliminado.
         """
-        db_obj = await self.get_product_by_id(
-            db, product_id=product_id, include_deleted=True
-        )
+        db_obj = await self.get_product_by_id(db, product_id=product_id, include_deleted=True)
 
         if db_obj.status and not db_obj.is_deleted:
             raise ProductAlreadyActiveException()
@@ -211,6 +199,4 @@ class ProductService:
         if not db_obj.status:
             raise ProductAlreadyInactiveException()
 
-        return await self.product_repo.update(
-            db, db_obj=db_obj, obj_in={"status": False}
-        )
+        return await self.product_repo.update(db, db_obj=db_obj, obj_in={"status": False})

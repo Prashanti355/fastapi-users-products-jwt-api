@@ -8,7 +8,12 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
-ignore = []
+ignore = [
+    "B008",   # FastAPI usa Depends, Query, Path y Body en defaults de endpoints.
+    "E501",   # Black controla el formato; algunas líneas largas son strings o nombres de tests.
+    "UP042",  # Mantener Enum + str por compatibilidad explícita con Pydantic/FastAPI.
+    "UP046",  # Evitar migrar genéricos a sintaxis PEP 695 en esta fase.
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]

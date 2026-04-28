@@ -13,7 +13,7 @@ WORKDIR /home/python
 
 ARG INSTALL_DEV=false
 
-COPY requirements.txt requirements-dev.txt ./
+COPY pyproject.toml requirements.txt requirements-dev.txt ./
 
 RUN if [ "$INSTALL_DEV" = "true" ]; then \
         pip install --no-cache-dir -r requirements-dev.txt; \
