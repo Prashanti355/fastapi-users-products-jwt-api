@@ -39,6 +39,7 @@ services:
       - ./app:/home/python/app
       - ./tests:/home/python/tests
       - ./pytest.ini:/home/python/pytest.ini
+      - ./pyproject.toml:/home/python/pyproject.toml
       - ./logs:/home/python/logs
       - ./alembic:/home/python/alembic
       - ./alembic.ini:/home/python/alembic.ini

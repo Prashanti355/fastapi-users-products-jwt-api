@@ -1,7 +1,8 @@
-import pytest
 from types import SimpleNamespace
-from uuid import uuid4
 from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
+
+import pytest
 
 from app.core.exceptions.auth_exceptions import (
     InactiveUserException,
@@ -63,9 +64,7 @@ def refresh_token_service():
     service = MagicMock()
     service.get_by_jti = AsyncMock()
     service.revoke_token = AsyncMock()
-    service.revoke_all_user_tokens = AsyncMock(
-        return_value=[SimpleNamespace(), SimpleNamespace()]
-    )
+    service.revoke_all_user_tokens = AsyncMock(return_value=[SimpleNamespace(), SimpleNamespace()])
     return service
 
 
@@ -118,9 +117,7 @@ def db_session():
 
 
 @pytest.mark.asyncio
-async def test_login_success(
-    auth_service, user_repository, token_service, db_session, mocker
-):
+async def test_login_success(auth_service, user_repository, token_service, db_session, mocker):
     user = build_user(password="hashed_pw")
     user_repository.get_by_username.return_value = user
     token_service.generate_tokens.return_value = SimpleNamespace(
@@ -143,9 +140,7 @@ async def test_login_success(
 
 
 @pytest.mark.asyncio
-async def test_login_raises_when_user_not_found(
-    auth_service, user_repository, db_session
-):
+async def test_login_raises_when_user_not_found(auth_service, user_repository, db_session):
     user_repository.get_by_username.return_value = None
 
     with pytest.raises(InvalidCredentialsException):
@@ -181,9 +176,7 @@ async def test_login_raises_when_user_is_inactive(
 
 
 @pytest.mark.asyncio
-async def test_register_success(
-    auth_service, user_repository, token_service, db_session, mocker
-):
+async def test_register_success(auth_service, user_repository, token_service, db_session, mocker):
     user_repository.get_by_username.return_value = None
     user_repository.get_by_email.return_value = None
     token_service.generate_tokens.return_value = SimpleNamespace(
@@ -192,9 +185,7 @@ async def test_register_success(
         token_type="bearer",
         expires_in=1800,
     )
-    mocker.patch(
-        "app.services.auth_service.get_password_hash", return_value="hashed_pw"
-    )
+    mocker.patch("app.services.auth_service.get_password_hash", return_value="hashed_pw")
 
     user_data = PublicRegisterRequest(
         first_name="Maya",
@@ -231,9 +222,7 @@ async def test_register_raises_when_username_already_exists(
 
 
 @pytest.mark.asyncio
-async def test_register_raises_when_email_already_exists(
-    auth_service, user_repository, db_session
-):
+async def test_register_raises_when_email_already_exists(auth_service, user_repository, db_session):
     user_repository.get_by_username.return_value = None
     user_repository.get_by_email.return_value = build_user(email="maya@example.com")
 
@@ -261,9 +250,7 @@ async def test_register_forces_public_user_defaults(
         token_type="bearer",
         expires_in=1800,
     )
-    mocker.patch(
-        "app.services.auth_service.get_password_hash", return_value="hashed_pw"
-    )
+    mocker.patch("app.services.auth_service.get_password_hash", return_value="hashed_pw")
 
     user_data = PublicRegisterRequest(
         first_name="Maya",
@@ -284,9 +271,7 @@ async def test_register_forces_public_user_defaults(
 
 
 @pytest.mark.asyncio
-async def test_refresh_token_success(
-    auth_service, user_repository, token_service, db_session
-):
+async def test_refresh_token_success(auth_service, user_repository, token_service, db_session):
     user = build_user()
     token_service.verify_refresh_token.return_value = TokenData(sub=str(user.id))
     user_repository.get.return_value = user
@@ -327,9 +312,7 @@ async def test_refresh_token_raises_when_user_is_inactive(
 
 
 @pytest.mark.asyncio
-async def test_get_current_user_success(
-    auth_service, user_repository, token_service, db_session
-):
+async def test_get_current_user_success(auth_service, user_repository, token_service, db_session):
     user = build_user()
     token_service.verify_access_token.return_value = TokenData(sub=str(user.id))
     user_repository.get.return_value = user

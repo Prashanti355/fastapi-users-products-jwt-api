@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -39,7 +39,7 @@ async def test_get_by_jti_returns_token_when_it_exists(db_session):
         jti=f"jti-{uuid4().hex}",
         user_id=user.id,
         token_type="refresh",
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
         revoked_at=None,
     )
 
@@ -84,7 +84,7 @@ async def test_revoke_by_jti_marks_token_as_revoked(db_session):
         jti=f"revoke-{uuid4().hex}",
         user_id=user.id,
         token_type="refresh",
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
         revoked_at=None,
     )
 
@@ -92,7 +92,7 @@ async def test_revoke_by_jti_marks_token_as_revoked(db_session):
     await db_session.commit()
 
     repository = RefreshTokenRepository()
-    revoked_at = datetime.now(timezone.utc)
+    revoked_at = datetime.now(UTC)
 
     result = await repository.revoke_by_jti(
         db_session,
@@ -122,7 +122,7 @@ async def test_revoke_by_jti_returns_none_when_token_not_found(db_session):
     result = await repository.revoke_by_jti(
         db_session,
         jti="jti-inexistente",
-        revoked_at=datetime.now(timezone.utc),
+        revoked_at=datetime.now(UTC),
         revoke_reason="logout",
     )
 
@@ -148,7 +148,7 @@ async def test_revoke_all_for_user_revokes_only_active_tokens_of_that_user(db_se
         jti=f"a1-{uuid4().hex}",
         user_id=user_a.id,
         token_type="refresh",
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
         revoked_at=None,
     )
     active_token_2 = RefreshToken(
@@ -156,7 +156,7 @@ async def test_revoke_all_for_user_revokes_only_active_tokens_of_that_user(db_se
         jti=f"a2-{uuid4().hex}",
         user_id=user_a.id,
         token_type="refresh",
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
         revoked_at=None,
     )
     already_revoked = RefreshToken(
@@ -164,8 +164,8 @@ async def test_revoke_all_for_user_revokes_only_active_tokens_of_that_user(db_se
         jti=f"a3-{uuid4().hex}",
         user_id=user_a.id,
         token_type="refresh",
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
-        revoked_at=datetime.now(timezone.utc) - timedelta(days=1),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
+        revoked_at=datetime.now(UTC) - timedelta(days=1),
         revoke_reason="old_reason",
     )
     other_user_token = RefreshToken(
@@ -173,7 +173,7 @@ async def test_revoke_all_for_user_revokes_only_active_tokens_of_that_user(db_se
         jti=f"b1-{uuid4().hex}",
         user_id=user_b.id,
         token_type="refresh",
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
         revoked_at=None,
     )
 
@@ -188,7 +188,7 @@ async def test_revoke_all_for_user_revokes_only_active_tokens_of_that_user(db_se
     await db_session.commit()
 
     repository = RefreshTokenRepository()
-    revoked_at = datetime.now(timezone.utc)
+    revoked_at = datetime.now(UTC)
 
     result = await repository.revoke_all_for_user(
         db_session,
@@ -204,12 +204,8 @@ async def test_revoke_all_for_user_revokes_only_active_tokens_of_that_user(db_se
 
     reloaded_active_1 = await repository.get_by_jti(db_session, jti=active_token_1.jti)
     reloaded_active_2 = await repository.get_by_jti(db_session, jti=active_token_2.jti)
-    reloaded_already_revoked = await repository.get_by_jti(
-        db_session, jti=already_revoked.jti
-    )
-    reloaded_other_user = await repository.get_by_jti(
-        db_session, jti=other_user_token.jti
-    )
+    reloaded_already_revoked = await repository.get_by_jti(db_session, jti=already_revoked.jti)
+    reloaded_other_user = await repository.get_by_jti(db_session, jti=other_user_token.jti)
 
     assert reloaded_active_1 is not None
     assert reloaded_active_1.revoked_at is not None
@@ -235,7 +231,7 @@ async def test_delete_expired_or_old_revoked_deletes_only_matching_tokens(db_ses
     await db_session.commit()
     await db_session.refresh(user)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     expired_token = RefreshToken(
         id=uuid4(),
@@ -294,7 +290,4 @@ async def test_delete_expired_or_old_revoked_deletes_only_matching_tokens(db_ses
     assert await repository.get_by_jti(db_session, jti=expired_token.jti) is None
     assert await repository.get_by_jti(db_session, jti=old_revoked_token.jti) is None
     assert await repository.get_by_jti(db_session, jti=active_token.jti) is not None
-    assert (
-        await repository.get_by_jti(db_session, jti=recent_revoked_token.jti)
-        is not None
-    )
+    assert await repository.get_by_jti(db_session, jti=recent_revoked_token.jti) is not None

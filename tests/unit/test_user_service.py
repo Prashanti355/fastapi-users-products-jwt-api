@@ -1,7 +1,8 @@
-import pytest
 from types import SimpleNamespace
-from uuid import uuid4
 from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
+
+import pytest
 
 from app.core.exceptions.auth_exceptions import InsufficientPermissionsException
 from app.core.exceptions.user_exceptions import (
@@ -107,9 +108,7 @@ async def test_get_user_by_id_success(user_service, user_repository, db_session)
 
 
 @pytest.mark.asyncio
-async def test_get_user_by_id_raises_when_not_found(
-    user_service, user_repository, db_session
-):
+async def test_get_user_by_id_raises_when_not_found(user_service, user_repository, db_session):
     user_repository.get.return_value = None
 
     with pytest.raises(UserNotFoundException):
@@ -121,9 +120,7 @@ async def test_create_user_success(user_service, user_repository, db_session, mo
     user_repository.get_by_email.return_value = None
     user_repository.get_by_username.return_value = None
     user_repository.create.return_value = build_user()
-    mocker.patch(
-        "app.services.user_service.get_password_hash", return_value="hashed_pw"
-    )
+    mocker.patch("app.services.user_service.get_password_hash", return_value="hashed_pw")
 
     user_in = FakeSchema(
         first_name="Maya",
@@ -184,9 +181,7 @@ async def test_update_user_success(user_service, user_repository, db_session, mo
     user_repository.get_by_email.return_value = None
     user_repository.get_by_username.return_value = None
     user_repository.update.return_value = user
-    mocker.patch(
-        "app.services.user_service.get_password_hash", return_value="hashed_pw"
-    )
+    mocker.patch("app.services.user_service.get_password_hash", return_value="hashed_pw")
 
     current_user = build_current_user(user_id=user.id, is_superuser=False)
 
@@ -299,16 +294,12 @@ async def test_partial_update_user_raises_when_normal_user_modifies_privileged_f
 
 
 @pytest.mark.asyncio
-async def test_change_password_success(
-    user_service, user_repository, db_session, mocker
-):
+async def test_change_password_success(user_service, user_repository, db_session, mocker):
     user = build_user(password="hashed_pw")
     user_repository.get.return_value = user
     user_repository.update.return_value = user
     mocker.patch("app.services.user_service.verify_password", return_value=True)
-    mocker.patch(
-        "app.services.user_service.get_password_hash", return_value="new_hashed_pw"
-    )
+    mocker.patch("app.services.user_service.get_password_hash", return_value="new_hashed_pw")
 
     password_data = SimpleNamespace(
         current_password="Clave1234",
@@ -416,9 +407,7 @@ async def test_restore_user_raises_when_user_was_not_deleted(
 
 
 @pytest.mark.asyncio
-async def test_activate_user_raises_when_already_active(
-    user_service, user_repository, db_session
-):
+async def test_activate_user_raises_when_already_active(user_service, user_repository, db_session):
     user = build_user(is_active=True)
     user_repository.get.return_value = user
 

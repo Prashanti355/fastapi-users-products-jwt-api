@@ -1,8 +1,8 @@
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 
 from app.api.v1.endpoints import auth as auth_endpoints
 from app.models.user import User
@@ -283,9 +283,7 @@ async def test_forgot_password_logs_event_when_user_exists(
     )
 
     assert response.codigo == 200
-    assert (
-        response.mensaje == "Si el correo existe, se generó un enlace de recuperación."
-    )
+    assert response.mensaje == "Si el correo existe, se generó un enlace de recuperación."
     assert response.resultado == {}
 
     auth_service.forgot_password.assert_awaited_once_with(
@@ -321,9 +319,7 @@ async def test_forgot_password_skips_audit_log_when_user_does_not_exist(
     )
 
     assert response.codigo == 200
-    assert (
-        response.mensaje == "Si el correo existe, se generó un enlace de recuperación."
-    )
+    assert response.mensaje == "Si el correo existe, se generó un enlace de recuperación."
     assert response.resultado == {}
 
     auth_service.forgot_password.assert_awaited_once_with(
@@ -458,9 +454,7 @@ async def test_logout_skips_audit_log_when_user_does_not_exist(
     assert response.mensaje == "Sesión cerrada exitosamente."
     assert response.resultado == {}
 
-    token_service.verify_refresh_token.assert_called_once_with(
-        "refresh_token_logout_none"
-    )
+    token_service.verify_refresh_token.assert_called_once_with("refresh_token_logout_none")
     user_repository.get.assert_awaited_once_with(
         db_session,
         id=user_id,

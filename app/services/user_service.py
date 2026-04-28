@@ -1,8 +1,9 @@
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions.auth_exceptions import InsufficientPermissionsException
 from app.core.exceptions.user_exceptions import (
     InvalidCredentialsException,
     PasswordMismatchException,
@@ -12,11 +13,10 @@ from app.core.exceptions.user_exceptions import (
     UserNotDeletedException,
     UserNotFoundException,
 )
-from app.core.exceptions.auth_exceptions import InsufficientPermissionsException
-from app.schemas.auth import CurrentUser
 from app.core.security import get_password_hash, verify_password
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
+from app.schemas.auth import CurrentUser
 from app.schemas.user import (
     PasswordChangeRequest,
     UserCreateRequest,
@@ -76,9 +76,9 @@ class UserService:
         limit: int = 10,
         sort_by: str = "created_at",
         order: str = "desc",
-        search: Optional[str] = None,
-        is_active: Optional[bool] = None,
-        is_deleted: bool = False
+        search: str | None = None,
+        is_active: bool | None = None,
+        is_deleted: bool = False,
     ) -> dict:
         result = await self.user_repo.get_multi_users(
             db,
@@ -97,17 +97,13 @@ class UserService:
             "data": result["items"],
         }
 
-    async def create_user(
-        self, db: AsyncSession, *, user_in: UserCreateRequest
-    ) -> User:
+    async def create_user(self, db: AsyncSession, *, user_in: UserCreateRequest) -> User:
         if user_in.email:
             email_user = await self.user_repo.get_by_email(db, email=user_in.email)
             if email_user:
                 raise UserAlreadyExistsException("email", user_in.email)
 
-        username_user = await self.user_repo.get_by_username(
-            db, username=user_in.username
-        )
+        username_user = await self.user_repo.get_by_username(db, username=user_in.username)
         if username_user:
             raise UserAlreadyExistsException("username", user_in.username)
 
@@ -122,7 +118,7 @@ class UserService:
         *,
         user_id: Any,
         user_in: UserUpdateRequest,
-        current_user: CurrentUser | None = None
+        current_user: CurrentUser | None = None,
     ) -> User:
         db_obj = await self.get_user_by_id(db, user_id=user_id)
 
@@ -137,9 +133,7 @@ class UserService:
                 raise UserAlreadyExistsException("email", user_in.email)
 
         if user_in.username != db_obj.username:
-            username_user = await self.user_repo.get_by_username(
-                db, username=user_in.username
-            )
+            username_user = await self.user_repo.get_by_username(db, username=user_in.username)
             if username_user:
                 raise UserAlreadyExistsException("username", user_in.username)
 
@@ -158,7 +152,7 @@ class UserService:
         *,
         user_id: Any,
         user_in: UserPartialUpdateRequest,
-        current_user: CurrentUser | None = None
+        current_user: CurrentUser | None = None,
     ) -> User:
         db_obj = await self.get_user_by_id(db, user_id=user_id)
 
@@ -168,9 +162,7 @@ class UserService:
                 raise UserAlreadyExistsException("email", user_in.email)
 
         if user_in.username and user_in.username != db_obj.username:
-            username_user = await self.user_repo.get_by_username(
-                db, username=user_in.username
-            )
+            username_user = await self.user_repo.get_by_username(db, username=user_in.username)
             if username_user:
                 raise UserAlreadyExistsException("username", user_in.username)
 
@@ -207,8 +199,8 @@ class UserService:
         db: AsyncSession,
         *,
         user_id: Any,
-        deleted_by: Optional[UUID] = None,
-        reason: Optional[str] = None
+        deleted_by: UUID | None = None,
+        reason: str | None = None,
     ) -> User:
         await self.get_user_by_id(db, user_id=user_id)
 
@@ -247,7 +239,7 @@ class UserService:
         )
 
     async def deactivate_user(
-        self, db: AsyncSession, *, user_id: Any, reason: Optional[str] = None
+        self, db: AsyncSession, *, user_id: Any, reason: str | None = None
     ) -> User:
         db_obj = await self.get_user_by_id(db, user_id=user_id)
 

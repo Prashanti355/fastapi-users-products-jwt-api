@@ -1,14 +1,15 @@
-import pytest
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, ANY
+from unittest.mock import ANY, AsyncMock, MagicMock
 from uuid import uuid4
-from datetime import datetime, timedelta, timezone
+
+import pytest
 
 from app.services.refresh_token_service import RefreshTokenService
 
 
 def naive_utc_now() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 @pytest.fixture
@@ -156,8 +157,8 @@ async def test_is_token_active_returns_false_when_token_is_revoked(
 ):
     db_token = SimpleNamespace(
         jti="jti_revoked",
-        revoked_at=datetime.now(timezone.utc),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=1),
+        revoked_at=datetime.now(UTC),
+        expires_at=datetime.now(UTC) + timedelta(days=1),
     )
     refresh_token_repository.get_by_jti.return_value = db_token
 
@@ -178,7 +179,7 @@ async def test_is_token_active_returns_false_when_token_is_expired_with_aware_da
     db_token = SimpleNamespace(
         jti="jti_expired",
         revoked_at=None,
-        expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+        expires_at=datetime.now(UTC) - timedelta(minutes=1),
     )
     refresh_token_repository.get_by_jti.return_value = db_token
 
@@ -220,7 +221,7 @@ async def test_is_token_active_returns_true_when_token_is_valid_with_aware_datet
     db_token = SimpleNamespace(
         jti="jti_active",
         revoked_at=None,
-        expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
+        expires_at=datetime.now(UTC) + timedelta(minutes=10),
     )
     refresh_token_repository.get_by_jti.return_value = db_token
 

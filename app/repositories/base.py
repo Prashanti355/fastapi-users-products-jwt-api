@@ -1,5 +1,5 @@
-from datetime import datetime, timezone
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
+from datetime import UTC, datetime
+from typing import Any, Generic, TypeVar
 
 from sqlalchemy import and_, asc, desc, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,10 +11,10 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=Any)
 
 
 class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
-    def __init__(self, model: Type[ModelType]):
+    def __init__(self, model: type[ModelType]):
         self.model = model
 
-    async def get(self, db: AsyncSession, id: Any) -> Optional[ModelType]:
+    async def get(self, db: AsyncSession, id: Any) -> ModelType | None:
         return await db.get(self.model, id)
 
     async def get_multi(
@@ -25,10 +25,10 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         limit: int = 10,
         sort_by: str = "created_at",
         order: str = "desc",
-        filters: Optional[Dict[str, Any]] = None,
-        search: Optional[str] = None,
-        search_fields: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        filters: dict[str, Any] | None = None,
+        search: str | None = None,
+        search_fields: list[str] | None = None,
+    ) -> dict[str, Any]:
         skip = (page - 1) * limit
 
         base_query = select(self.model)
@@ -87,7 +87,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db: AsyncSession,
         *,
         db_obj: ModelType,
-        obj_in: Union[UpdateSchemaType, Dict[str, Any]],
+        obj_in: UpdateSchemaType | dict[str, Any],
     ) -> ModelType:
         if isinstance(obj_in, dict):
             update_data = obj_in
@@ -99,23 +99,21 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
                 setattr(db_obj, field, update_data[field])
 
         if hasattr(db_obj, "modified_at"):
-            db_obj.modified_at = datetime.now(timezone.utc)
+            db_obj.modified_at = datetime.now(UTC)
 
         db.add(db_obj)
         await db.commit()
         await db.refresh(db_obj)
         return db_obj
 
-    async def remove(self, db: AsyncSession, *, id: Any) -> Optional[ModelType]:
+    async def remove(self, db: AsyncSession, *, id: Any) -> ModelType | None:
         obj = await db.get(self.model, id)
         if obj:
             await db.delete(obj)
             await db.commit()
         return obj
 
-    async def soft_remove(
-        self, db: AsyncSession, *, id: Any, **kwargs
-    ) -> Optional[ModelType]:
+    async def soft_remove(self, db: AsyncSession, *, id: Any, **kwargs) -> ModelType | None:
         obj = await db.get(self.model, id)
         if not obj:
             return None
@@ -123,7 +121,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         if hasattr(obj, "is_deleted"):
             obj.is_deleted = True
         if hasattr(obj, "deleted_at"):
-            obj.deleted_at = datetime.now(timezone.utc)
+            obj.deleted_at = datetime.now(UTC)
         if hasattr(obj, "is_active"):
             obj.is_active = False
 

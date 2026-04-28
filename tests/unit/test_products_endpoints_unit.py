@@ -1,6 +1,7 @@
-from uuid import uuid4
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
-from datetime import datetime, timezone
+from uuid import uuid4
+
 import pytest
 
 from app.api.v1.endpoints.products import (
@@ -29,7 +30,7 @@ def build_product(
     image_link: str = "https://example.com/product.jpg",
     is_deleted: bool = False,
 ) -> Product:
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
 
     return Product(
         id=uuid4(),

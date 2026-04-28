@@ -6,14 +6,12 @@ from uuid import uuid4
 
 import pytest
 import pytest_asyncio
-from sqlalchemy.orm import sessionmaker
 from httpx import ASGITransport, AsyncClient
-
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import sessionmaker
 
 from app.core.database import engine
-
 from app.main import app
 
 
@@ -213,9 +211,7 @@ async def create_and_login_user(register_public_user, get_auth_headers):
 
         assert response.status_code == 201, response.text
 
-        headers = await get_auth_headers(
-            username=payload["username"], password=payload["password"]
-        )
+        headers = await get_auth_headers(username=payload["username"], password=payload["password"])
 
         return {
             "registration_response": response,
@@ -236,9 +232,7 @@ async def create_product(async_client: AsyncClient, build_product_payload):
         suffix = overrides.pop("suffix", uuid4().hex[:8])
         payload = build_product_payload(suffix, **overrides)
 
-        response = await async_client.post(
-            "/api/v1/products", json=payload, headers=headers
-        )
+        response = await async_client.post("/api/v1/products", json=payload, headers=headers)
 
         return {
             "response": response,

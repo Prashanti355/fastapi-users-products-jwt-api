@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -51,11 +51,11 @@ class RefreshTokenService:
         if token.revoked_at is not None:
             return False
 
-        now_utc = datetime.now(timezone.utc)
+        now_utc = datetime.now(UTC)
 
         expires_at = token.expires_at
         if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
+            expires_at = expires_at.replace(tzinfo=UTC)
 
         if expires_at <= now_utc:
             return False
@@ -72,7 +72,7 @@ class RefreshTokenService:
         return await self.repository.revoke_by_jti(
             db,
             jti=jti,
-            revoked_at=datetime.now(timezone.utc),
+            revoked_at=datetime.now(UTC),
             revoke_reason=revoke_reason,
         )
 
@@ -86,7 +86,7 @@ class RefreshTokenService:
         return await self.repository.revoke_all_for_user(
             db,
             user_id=user_id,
-            revoked_at=datetime.now(timezone.utc),
+            revoked_at=datetime.now(UTC),
             revoke_reason=revoke_reason,
         )
 

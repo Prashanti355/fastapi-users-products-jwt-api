@@ -1,6 +1,7 @@
-import pytest
-from uuid import uuid4
 import asyncio
+from uuid import uuid4
+
+import pytest
 from sqlalchemy import text
 
 from app.repositories.password_reset_token_repository import (
@@ -26,9 +27,7 @@ async def test_register_success(async_client, register_public_user):
 
 
 @pytest.mark.asyncio
-async def test_register_duplicate_user_returns_conflict(
-    async_client, register_public_user
-):
+async def test_register_duplicate_user_returns_conflict(async_client, register_public_user):
     first = await register_public_user()
     payload = first["payload"]
 
@@ -49,9 +48,7 @@ async def test_login_success(async_client, register_public_user, login_user):
 
     assert registration["response"].status_code == 201
 
-    response = await login_user(
-        username=payload["username"], password=payload["password"]
-    )
+    response = await login_user(username=payload["username"], password=payload["password"])
 
     assert response.status_code == 200
 
@@ -71,9 +68,7 @@ async def test_login_with_invalid_password_returns_401(
 
     assert registration["response"].status_code == 201
 
-    response = await login_user(
-        username=payload["username"], password="PasswordIncorrecto999"
-    )
+    response = await login_user(username=payload["username"], password="PasswordIncorrecto999")
 
     assert response.status_code == 401
 
@@ -157,9 +152,7 @@ async def test_public_register_does_not_create_superuser(
 
     assert registration["response"].status_code == 201
 
-    login_response = await login_user(
-        username=payload["username"], password=payload["password"]
-    )
+    login_response = await login_user(username=payload["username"], password=payload["password"])
     assert login_response.status_code == 200
 
     access_token = login_response.json()["access_token"]
@@ -354,9 +347,7 @@ async def test_logout_all_revokes_all_refresh_tokens_for_current_user(
     assert logout_all_response.status_code == 200
     logout_all_body = logout_all_response.json()
     assert logout_all_body["codigo"] == 200
-    assert (
-        logout_all_body["mensaje"] == "Todas las sesiones fueron cerradas exitosamente."
-    )
+    assert logout_all_body["mensaje"] == "Todas las sesiones fueron cerradas exitosamente."
 
     first_refresh_after_logout_all = await async_client.post(
         "/api/v1/auth/refresh-token",
@@ -429,9 +420,7 @@ async def test_forgot_password_returns_200_and_creates_token_for_existing_email(
 
     body = response.json()
     assert body["codigo"] == 200
-    assert (
-        body["mensaje"] == "Si el correo existe, se generó un enlace de recuperación."
-    )
+    assert body["mensaje"] == "Si el correo existe, se generó un enlace de recuperación."
 
     user_repo = UserRepository()
     token_repo = PasswordResetTokenRepository()
@@ -463,9 +452,7 @@ async def test_forgot_password_returns_neutral_response_for_unknown_email(
 
     body = response.json()
     assert body["codigo"] == 200
-    assert (
-        body["mensaje"] == "Si el correo existe, se generó un enlace de recuperación."
-    )
+    assert body["mensaje"] == "Si el correo existe, se generó un enlace de recuperación."
 
 
 @pytest.mark.asyncio
@@ -701,9 +688,7 @@ async def test_forgot_password_with_inactive_user_returns_neutral_response(
     assert response.status_code == 200
     body = response.json()
     assert body["codigo"] == 200
-    assert (
-        body["mensaje"] == "Si el correo existe, se generó un enlace de recuperación."
-    )
+    assert body["mensaje"] == "Si el correo existe, se generó un enlace de recuperación."
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,6 @@
-from datetime import datetime, timezone
-from uuid import uuid4
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
 
 import pytest
 
@@ -39,7 +39,7 @@ def build_audit_log_item():
         "request_id": "req-1",
         "status": "success",
         "detail": "Inicio de sesión exitoso.",
-        "created_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(UTC),
     }
 
 

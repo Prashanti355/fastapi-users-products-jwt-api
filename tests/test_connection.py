@@ -1,6 +1,7 @@
-import sys
 import asyncio
+import sys
 from pathlib import Path
+
 from sqlalchemy import text
 
 # Agrega la raíz del proyecto al path para poder importar "app"

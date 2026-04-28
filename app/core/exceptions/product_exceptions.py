@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import UUID
 
 from app.core.exceptions.base import AppException
@@ -10,7 +9,7 @@ class ProductNotFoundException(AppException):
     por su ID.
     """
 
-    def __init__(self, product_id: Optional[UUID] = None):
+    def __init__(self, product_id: UUID | None = None):
         self.product_id = product_id
         super().__init__(message="Producto no encontrado.", code=404)
 
@@ -21,9 +20,7 @@ class ProductAlreadyExistsException(AppException):
     ya están en uso.
     """
 
-    def __init__(
-        self, conflict_type: Optional[str] = None, value: Optional[str] = None
-    ):
+    def __init__(self, conflict_type: str | None = None, value: str | None = None):
         if conflict_type == "name":
             message = f"El producto con nombre '{value}' ya existe."
         elif conflict_type == "product_key":

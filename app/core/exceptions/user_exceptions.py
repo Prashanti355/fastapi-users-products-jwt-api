@@ -39,9 +39,7 @@ class UserAlreadyInactiveException(AppException):
 
 class InvalidCredentialsException(AppException):
     def __init__(self):
-        super().__init__(
-            message="Datos inválidos o la contraseña actual no coincide.", code=401
-        )
+        super().__init__(message="Datos inválidos o la contraseña actual no coincide.", code=401)
 
 
 class PasswordMismatchException(AppException):

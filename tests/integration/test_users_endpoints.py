@@ -36,9 +36,7 @@ async def test_get_user_without_token_returns_401(async_client, create_and_login
 
 
 @pytest.mark.asyncio
-async def test_normal_user_cannot_list_all_users_returns_403(
-    async_client, create_and_login_user
-):
+async def test_normal_user_cannot_list_all_users_returns_403(async_client, create_and_login_user):
     auth_data = await create_and_login_user()
     headers = auth_data["headers"]
 
@@ -62,9 +60,7 @@ async def test_superuser_can_list_all_users(
     assert registration["response"].status_code == 201
 
     await promote_user_to_superuser(payload["username"])
-    headers = await get_auth_headers(
-        username=payload["username"], password=payload["password"]
-    )
+    headers = await get_auth_headers(username=payload["username"], password=payload["password"])
 
     response = await async_client.get("/api/v1/users", headers=headers)
 

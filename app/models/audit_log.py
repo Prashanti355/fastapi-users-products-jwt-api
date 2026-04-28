@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import Column, DateTime, String, Text
@@ -21,33 +20,29 @@ class AuditLog(SQLModel, table=True):
 
     entity: str = Field(sa_column=Column(String(100), nullable=False, index=True))
 
-    entity_id: Optional[str] = Field(
+    entity_id: str | None = Field(
         default=None, sa_column=Column(String(100), nullable=True, index=True)
     )
 
-    actor_id: Optional[str] = Field(
+    actor_id: str | None = Field(
         default=None, sa_column=Column(String(100), nullable=True, index=True)
     )
 
-    actor_username: Optional[str] = Field(
+    actor_username: str | None = Field(
         default=None, sa_column=Column(String(100), nullable=True, index=True)
     )
 
-    actor_role: Optional[str] = Field(
-        default=None, sa_column=Column(String(100), nullable=True)
-    )
+    actor_role: str | None = Field(default=None, sa_column=Column(String(100), nullable=True))
 
-    request_id: Optional[str] = Field(
+    request_id: str | None = Field(
         default=None, sa_column=Column(String(100), nullable=True, index=True)
     )
 
-    status: str = Field(
-        default="success", sa_column=Column(String(30), nullable=False, index=True)
-    )
+    status: str = Field(default="success", sa_column=Column(String(30), nullable=False, index=True))
 
-    detail: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    detail: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
 
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(DateTime(timezone=True), nullable=False, index=True),
     )

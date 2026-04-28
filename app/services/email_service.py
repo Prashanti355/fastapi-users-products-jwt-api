@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 import resend
 
 from app.core.config import settings
@@ -20,7 +18,7 @@ class EmailService:
         *,
         to_email: str,
         reset_link: str,
-        username: Optional[str] = None,
+        username: str | None = None,
     ) -> dict:
         if not self.is_configured():
             raise ValueError("El servicio de correo no está configurado.")

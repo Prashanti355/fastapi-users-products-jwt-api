@@ -1,6 +1,7 @@
 import argparse
 import inspect
 from unittest.mock import AsyncMock
+
 from app.scripts import cleanup_refresh_tokens
 
 

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -11,9 +11,7 @@ from app.schemas.product import (
 )
 
 
-class ProductRepository(
-    BaseRepository[Product, ProductCreateRequest, ProductPartialUpdateRequest]
-):
+class ProductRepository(BaseRepository[Product, ProductCreateRequest, ProductPartialUpdateRequest]):
     def __init__(self):
         """
         Inicializa el repositorio de productos
@@ -21,7 +19,7 @@ class ProductRepository(
         """
         super().__init__(Product)
 
-    async def get_by_name(self, db: AsyncSession, *, name: str) -> Optional[Product]:
+    async def get_by_name(self, db: AsyncSession, *, name: str) -> Product | None:
         """
         Busca un producto por su nombre.
         Sirve para validar duplicados.
@@ -30,9 +28,7 @@ class ProductRepository(
         result = await db.execute(statement)
         return result.scalar_one_or_none()
 
-    async def get_by_product_key(
-        self, db: AsyncSession, *, product_key: str
-    ) -> Optional[Product]:
+    async def get_by_product_key(self, db: AsyncSession, *, product_key: str) -> Product | None:
         """
         Busca un producto por su clave única.
         Sirve para validar duplicados.
@@ -49,16 +45,16 @@ class ProductRepository(
         limit: int = 10,
         sort_by: str = "created_at",
         order: str = "desc",
-        search: Optional[str] = None,
-        status: Optional[bool] = None,
-        product_type: Optional[str] = None,
-        is_deleted: bool = False
-    ) -> Dict[str, Any]:
+        search: str | None = None,
+        status: bool | None = None,
+        product_type: str | None = None,
+        is_deleted: bool = False,
+    ) -> dict[str, Any]:
         """
         Lista paginada especializada para productos,
         con filtros de disponibilidad, tipo y búsqueda.
         """
-        filters: Dict[str, Any] = {"is_deleted": is_deleted}
+        filters: dict[str, Any] = {"is_deleted": is_deleted}
 
         if status is not None:
             filters["status"] = status
@@ -77,9 +73,7 @@ class ProductRepository(
             search_fields=["name", "description", "product_key"],
         )
 
-    async def soft_delete(
-        self, db: AsyncSession, *, product_id: Any, **kwargs
-    ) -> Optional[Product]:
+    async def soft_delete(self, db: AsyncSession, *, product_id: Any, **kwargs) -> Product | None:
         """
         Wrapper de eliminación lógica específico
         para productos.

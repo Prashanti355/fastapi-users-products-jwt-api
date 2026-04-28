@@ -1,5 +1,5 @@
 import json
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -13,13 +13,13 @@ class Settings(BaseSettings):
 
     API_V1_STR: str = "/api/v1"
 
-    POSTGRES_USER: Optional[str] = None
-    POSTGRES_PASSWORD: Optional[str] = None
-    POSTGRES_DB: Optional[str] = None
-    POSTGRES_HOST: Optional[str] = None
+    POSTGRES_USER: str | None = None
+    POSTGRES_PASSWORD: str | None = None
+    POSTGRES_DB: str | None = None
+    POSTGRES_HOST: str | None = None
     POSTGRES_PORT: int = 5432
 
-    DATABASE_URL: Optional[str] = None
+    DATABASE_URL: str | None = None
 
     APP_PORT: int = 8000
 
@@ -42,9 +42,9 @@ class Settings(BaseSettings):
 
     LOG_DIR: str = "logs"
 
-    RESEND_API_KEY: Optional[str] = None
-    EMAIL_FROM: Optional[str] = None
-    FRONTEND_RESET_PASSWORD_URL: Optional[str] = None
+    RESEND_API_KEY: str | None = None
+    EMAIL_FROM: str | None = None
+    FRONTEND_RESET_PASSWORD_URL: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -56,9 +56,7 @@ class Settings(BaseSettings):
     @classmethod
     def validate_secret_key(cls, value: str) -> str:
         if len(value) < 32:
-            raise ValueError(
-                "SECRET_KEY debe tener al menos 32 caracteres para ser segura"
-            )
+            raise ValueError("SECRET_KEY debe tener al menos 32 caracteres para ser segura")
         return value
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")

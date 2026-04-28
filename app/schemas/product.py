@@ -1,6 +1,5 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -17,13 +16,11 @@ class ProductBase(BaseModel):
         ..., gt=0, max_digits=8, decimal_places=2, description="Precio del producto"
     )
     status: bool = Field(default=True, description="Estado de disponibilidad")
-    description: Optional[str] = Field(
-        default=None, description="Descripción detallada"
-    )
-    product_key: Optional[str] = Field(
+    description: str | None = Field(default=None, description="Descripción detallada")
+    product_key: str | None = Field(
         default=None, max_length=8, description="Clave única del producto"
     )
-    image_link: Optional[str] = Field(
+    image_link: str | None = Field(
         default=None, max_length=200, description="URL o ruta de la imagen"
     )
 
@@ -42,7 +39,7 @@ class ProductRead(ProductBase):
 
     id: UUID
     is_deleted: bool
-    deleted_at: Optional[datetime] = None
+    deleted_at: datetime | None = None
     created_at: datetime
     modified_at: datetime
 
@@ -76,17 +73,17 @@ class ProductPartialUpdateRequest(BaseModel):
     Todos los campos son opcionales.
     """
 
-    name: Optional[str] = Field(default=None, max_length=255)
-    type: Optional[str] = Field(default=None, max_length=10)
-    price: Optional[Decimal] = Field(default=None, gt=0, max_digits=8, decimal_places=2)
-    status: Optional[bool] = None
-    description: Optional[str] = None
-    product_key: Optional[str] = Field(default=None, max_length=8)
-    image_link: Optional[str] = Field(default=None, max_length=200)
+    name: str | None = Field(default=None, max_length=255)
+    type: str | None = Field(default=None, max_length=10)
+    price: Decimal | None = Field(default=None, gt=0, max_digits=8, decimal_places=2)
+    status: bool | None = None
+    description: str | None = None
+    product_key: str | None = Field(default=None, max_length=8)
+    image_link: str | None = Field(default=None, max_length=200)
 
     @field_validator("price")
     @classmethod
-    def validate_price(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+    def validate_price(cls, v: Decimal | None) -> Decimal | None:
         if v is not None and v <= 0:
             raise ValueError("El precio debe ser mayor a 0.")
         return v
@@ -102,7 +99,7 @@ class ProductBasic(BaseModel):
     type: str
     price: Decimal
     status: bool
-    product_key: Optional[str] = None
+    product_key: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -114,7 +111,7 @@ class ProductDeleteResult(BaseModel):
 
     id: UUID
     is_deleted: bool
-    deleted_at: Optional[datetime] = None
+    deleted_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -126,7 +123,7 @@ class ProductRestoreResult(BaseModel):
 
     id: UUID
     is_deleted: bool
-    deleted_at: Optional[datetime] = None
+    deleted_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

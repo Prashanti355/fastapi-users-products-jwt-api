@@ -1,13 +1,13 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
 
+from app.core.security import get_password_hash
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.services.refresh_token_service import RefreshTokenService
-from app.core.security import get_password_hash
 
 
 @pytest.mark.asyncio
@@ -32,7 +32,7 @@ async def test_cleanup_deletes_expired_and_old_revoked_tokens(db_session):
     await db_session.commit()
     await db_session.refresh(user)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     expired_token = RefreshToken(
         id=uuid4(),
@@ -93,13 +93,9 @@ async def test_cleanup_deletes_expired_and_old_revoked_tokens(db_session):
     assert deleted_count == 2
 
     remaining_expired = await repository.get_by_jti(db_session, jti=expired_token.jti)
-    remaining_old_revoked = await repository.get_by_jti(
-        db_session, jti=old_revoked_token.jti
-    )
+    remaining_old_revoked = await repository.get_by_jti(db_session, jti=old_revoked_token.jti)
     remaining_active = await repository.get_by_jti(db_session, jti=active_token.jti)
-    remaining_recent_revoked = await repository.get_by_jti(
-        db_session, jti=recent_revoked_token.jti
-    )
+    remaining_recent_revoked = await repository.get_by_jti(db_session, jti=recent_revoked_token.jti)
 
     assert remaining_expired is None
     assert remaining_old_revoked is None

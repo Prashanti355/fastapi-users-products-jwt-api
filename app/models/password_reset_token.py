@@ -1,5 +1,4 @@
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import Column, DateTime
@@ -28,11 +27,11 @@ class PasswordResetToken(SQLModel, table=True):
     expires_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
-    used_at: Optional[datetime] = Field(
+    used_at: datetime | None = Field(
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=True),
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )

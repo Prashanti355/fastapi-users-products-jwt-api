@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Generic, List, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -22,16 +22,14 @@ class SortingParams(BaseModel):
 
 
 class SearchParams(BaseModel):
-    search: Optional[str] = Field(None, description="Texto de búsqueda general")
-    is_active: Optional[bool] = Field(
-        None, description="Filtrar por estado activo/inactivo"
-    )
+    search: str | None = Field(None, description="Texto de búsqueda general")
+    is_active: bool | None = Field(None, description="Filtrar por estado activo/inactivo")
 
 
 class PagedResult(BaseModel, Generic[T]):
     total: int
     page: int
     limit: int
-    data: List[T]
+    data: list[T]
 
     model_config = ConfigDict(from_attributes=True)

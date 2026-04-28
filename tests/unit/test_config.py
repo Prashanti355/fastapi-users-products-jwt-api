@@ -26,9 +26,7 @@ def test_settings_builds_database_url_when_missing():
         DATABASE_URL=None,
     )
 
-    assert settings_obj.DATABASE_URL == (
-        "postgresql+asyncpg://user1:pass1@dbhost:5433/db1"
-    )
+    assert settings_obj.DATABASE_URL == ("postgresql+asyncpg://user1:pass1@dbhost:5433/db1")
 
 
 def test_settings_preserves_database_url_when_provided():
@@ -49,9 +47,7 @@ def test_validate_secret_key_rejects_short_value():
     with pytest.raises(ValidationError) as exc_info:
         build_settings(SECRET_KEY="short-secret-key")
 
-    assert "SECRET_KEY debe tener al menos 32 caracteres para ser segura" in str(
-        exc_info.value
-    )
+    assert "SECRET_KEY debe tener al menos 32 caracteres para ser segura" in str(exc_info.value)
 
 
 def test_parse_cors_origins_accepts_json_list_string():
