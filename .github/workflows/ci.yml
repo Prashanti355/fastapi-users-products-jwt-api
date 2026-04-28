@@ -100,6 +100,14 @@ jobs:
 
           asyncio.run(main())
           PY
+      - name: Run format check
+        run: python -m black --check app tests
+
+      - name: Run lint
+        run: python -m ruff check app tests
 
       - name: Run tests
         run: python -m pytest tests/unit tests/integration -q
+        
+      - name: Run coverage
+        run: python -m pytest tests/unit tests/integration --cov=app --cov-report=term-missing

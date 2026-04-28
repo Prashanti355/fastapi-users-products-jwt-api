@@ -171,7 +171,9 @@ async def test_base_repository_update_with_dict_ignores_unknown_fields(db_sessio
 
 
 @pytest.mark.asyncio
-async def test_base_repository_get_multi_applies_scalar_filters_search_and_sort(db_session):
+async def test_base_repository_get_multi_applies_scalar_filters_search_and_sort(
+    db_session,
+):
     repo = BaseRepository(Product)
     suffix = uuid4().hex[:4]
 
@@ -222,8 +224,11 @@ async def test_base_repository_get_multi_applies_scalar_filters_search_and_sort(
     assert result["items"][0].id == product_1.id
     assert result["items"][0].name == product_1.name
 
+
 @pytest.mark.asyncio
-async def test_base_repository_get_multi_applies_list_filters_and_pagination(db_session):
+async def test_base_repository_get_multi_applies_list_filters_and_pagination(
+    db_session,
+):
     repo = BaseRepository(Product)
     suffix = uuid4().hex[:4]
 
@@ -271,7 +276,9 @@ async def test_base_repository_get_multi_applies_list_filters_and_pagination(db_
 
 
 @pytest.mark.asyncio
-async def test_base_repository_remove_returns_deleted_object_and_none_when_missing(db_session):
+async def test_base_repository_remove_returns_deleted_object_and_none_when_missing(
+    db_session,
+):
     repo = BaseRepository(Product)
     suffix = uuid4().hex[:8]
 
@@ -305,7 +312,9 @@ async def test_base_repository_remove_returns_deleted_object_and_none_when_missi
 
 
 @pytest.mark.asyncio
-async def test_base_repository_soft_remove_marks_product_deleted_and_applies_kwargs(db_session):
+async def test_base_repository_soft_remove_marks_product_deleted_and_applies_kwargs(
+    db_session,
+):
     repo = BaseRepository(Product)
     suffix = uuid4().hex[:8]
 
@@ -334,7 +343,9 @@ async def test_base_repository_soft_remove_marks_product_deleted_and_applies_kwa
 
 
 @pytest.mark.asyncio
-async def test_base_repository_soft_remove_marks_user_deleted_inactive_and_applies_kwargs(db_session):
+async def test_base_repository_soft_remove_marks_user_deleted_inactive_and_applies_kwargs(
+    db_session,
+):
     repo = BaseRepository(User)
     suffix = uuid4().hex[:8]
     deleter_id = uuid4()
@@ -361,7 +372,9 @@ async def test_base_repository_soft_remove_marks_user_deleted_inactive_and_appli
 
 
 @pytest.mark.asyncio
-async def test_base_repository_soft_remove_returns_none_when_object_does_not_exist(db_session):
+async def test_base_repository_soft_remove_returns_none_when_object_does_not_exist(
+    db_session,
+):
     repo = BaseRepository(User)
 
     result = await repo.soft_remove(

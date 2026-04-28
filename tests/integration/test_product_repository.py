@@ -90,7 +90,9 @@ async def test_product_repository_get_by_product_key_returns_product(db_session)
 
 
 @pytest.mark.asyncio
-async def test_product_repository_get_by_product_key_returns_none_when_missing(db_session):
+async def test_product_repository_get_by_product_key_returns_none_when_missing(
+    db_session,
+):
     repo = ProductRepository()
 
     result = await repo.get_by_product_key(
@@ -102,7 +104,9 @@ async def test_product_repository_get_by_product_key_returns_none_when_missing(d
 
 
 @pytest.mark.asyncio
-async def test_product_repository_get_multi_products_applies_default_is_deleted_filter(db_session):
+async def test_product_repository_get_multi_products_applies_default_is_deleted_filter(
+    db_session,
+):
     repo = ProductRepository()
     suffix = uuid4().hex[:4]
     type_code = f"D{suffix}"
@@ -140,7 +144,9 @@ async def test_product_repository_get_multi_products_applies_default_is_deleted_
 
 
 @pytest.mark.asyncio
-async def test_product_repository_get_multi_products_can_filter_deleted_records(db_session):
+async def test_product_repository_get_multi_products_can_filter_deleted_records(
+    db_session,
+):
     repo = ProductRepository()
     suffix = uuid4().hex[:4]
     type_code = f"X{suffix}"
@@ -177,7 +183,9 @@ async def test_product_repository_get_multi_products_can_filter_deleted_records(
 
 
 @pytest.mark.asyncio
-async def test_product_repository_get_multi_products_applies_status_type_search_and_sort(db_session):
+async def test_product_repository_get_multi_products_applies_status_type_search_and_sort(
+    db_session,
+):
     repo = ProductRepository()
     suffix = uuid4().hex[:4]
     type_code = f"S{suffix}"
@@ -270,7 +278,9 @@ async def test_product_repository_get_multi_products_applies_pagination(db_sessi
 
 
 @pytest.mark.asyncio
-async def test_product_repository_soft_delete_marks_product_deleted_and_applies_kwargs(db_session):
+async def test_product_repository_soft_delete_marks_product_deleted_and_applies_kwargs(
+    db_session,
+):
     repo = ProductRepository()
     suffix = uuid4().hex[:6]
 

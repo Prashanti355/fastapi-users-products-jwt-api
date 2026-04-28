@@ -34,7 +34,7 @@ router = APIRouter()
 def _ensure_self_or_superuser(
     current_user: CurrentUser,
     target_user_id: UUID,
-    action_message: str = "No tiene permisos para realizar esta acción."
+    action_message: str = "No tiene permisos para realizar esta acción.",
 ) -> None:
     if current_user.is_superuser:
         return
@@ -48,7 +48,7 @@ def _ensure_self_or_superuser(
     response_model=ApiResponse[PagedResponse[UserSchema]],
     status_code=status.HTTP_200_OK,
     summary="Obtener todos los usuarios",
-    description="Devuelve una lista paginada de usuarios con filtros y ordenamiento."
+    description="Devuelve una lista paginada de usuarios con filtros y ordenamiento.",
 )
 async def list_users(
     db: AsyncSession = Depends(get_db),
@@ -69,13 +69,13 @@ async def list_users(
         order=order,
         search=search,
         is_active=is_active,
-        is_deleted=False
+        is_deleted=False,
     )
 
     return ApiResponse(
         codigo=200,
         mensaje="Usuarios obtenidos correctamente.",
-        resultado=PagedResponse[UserSchema](**result)
+        resultado=PagedResponse[UserSchema](**result),
     )
 
 
@@ -83,7 +83,7 @@ async def list_users(
     "/{user_id}",
     response_model=ApiResponse[UserSchema],
     status_code=status.HTTP_200_OK,
-    summary="Obtener usuario por ID"
+    summary="Obtener usuario por ID",
 )
 async def get_user(
     user_id: UUID = Path(..., description="ID del usuario"),
@@ -92,17 +92,13 @@ async def get_user(
     current_user: CurrentUser = Depends(get_current_active_user),
 ):
     _ensure_self_or_superuser(
-        current_user,
-        user_id,
-        "Solo puede consultar su propio usuario."
+        current_user, user_id, "Solo puede consultar su propio usuario."
     )
 
     user = await user_service.get_user_by_id(db, user_id=user_id)
 
     return ApiResponse(
-        codigo=200,
-        mensaje="Usuario obtenido correctamente.",
-        resultado=user
+        codigo=200, mensaje="Usuario obtenido correctamente.", resultado=user
     )
 
 
@@ -110,7 +106,7 @@ async def get_user(
     "",
     response_model=ApiResponse[UserSchema],
     status_code=status.HTTP_201_CREATED,
-    summary="Crear nuevo usuario"
+    summary="Crear nuevo usuario",
 )
 async def create_user(
     user_in: UserCreateRequest,
@@ -133,9 +129,7 @@ async def create_user(
     )
 
     return ApiResponse(
-        codigo=201,
-        mensaje="Usuario creado correctamente.",
-        resultado=user
+        codigo=201, mensaje="Usuario creado correctamente.", resultado=user
     )
 
 
@@ -143,7 +137,7 @@ async def create_user(
     "/{user_id}",
     response_model=ApiResponse[UserSchema],
     status_code=status.HTTP_200_OK,
-    summary="Actualización completa"
+    summary="Actualización completa",
 )
 async def update_user(
     user_id: UUID,
@@ -155,16 +149,11 @@ async def update_user(
     request_id: str | None = Depends(get_request_id),
 ):
     _ensure_self_or_superuser(
-        current_user,
-        user_id,
-        "Solo puede actualizar su propio usuario."
+        current_user, user_id, "Solo puede actualizar su propio usuario."
     )
 
     user = await user_service.update_user(
-        db,
-        user_id=user_id,
-        user_in=user_in,
-        current_user=current_user
+        db, user_id=user_id, user_in=user_in, current_user=current_user
     )
 
     await audit_log_service.log_event(
@@ -178,9 +167,7 @@ async def update_user(
     )
 
     return ApiResponse(
-        codigo=200,
-        mensaje="Usuario actualizado correctamente.",
-        resultado=user
+        codigo=200, mensaje="Usuario actualizado correctamente.", resultado=user
     )
 
 
@@ -188,7 +175,7 @@ async def update_user(
     "/{user_id}",
     response_model=ApiResponse[UserSchema],
     status_code=status.HTTP_200_OK,
-    summary="Actualización parcial"
+    summary="Actualización parcial",
 )
 async def partial_update_user(
     user_id: UUID,
@@ -200,16 +187,11 @@ async def partial_update_user(
     request_id: str | None = Depends(get_request_id),
 ):
     _ensure_self_or_superuser(
-        current_user,
-        user_id,
-        "Solo puede actualizar su propio usuario."
+        current_user, user_id, "Solo puede actualizar su propio usuario."
     )
 
     user = await user_service.partial_update_user(
-        db,
-        user_id=user_id,
-        user_in=user_in,
-        current_user=current_user
+        db, user_id=user_id, user_in=user_in, current_user=current_user
     )
 
     await audit_log_service.log_event(
@@ -223,9 +205,7 @@ async def partial_update_user(
     )
 
     return ApiResponse(
-        codigo=200,
-        mensaje="Usuario actualizado parcialmente.",
-        resultado=user
+        codigo=200, mensaje="Usuario actualizado parcialmente.", resultado=user
     )
 
 
@@ -233,7 +213,7 @@ async def partial_update_user(
     "/{user_id}/change-password",
     response_model=ApiResponseSimple,
     status_code=status.HTTP_200_OK,
-    summary="Cambiar contraseña"
+    summary="Cambiar contraseña",
 )
 async def change_password(
     user_id: UUID,
@@ -249,11 +229,7 @@ async def change_password(
             message="Solo puede cambiar su propia contraseña."
         )
 
-    await user_service.change_password(
-        db,
-        user_id=user_id,
-        password_data=password_data
-    )
+    await user_service.change_password(db, user_id=user_id, password_data=password_data)
 
     await audit_log_service.log_event(
         db,
@@ -266,9 +242,7 @@ async def change_password(
     )
 
     return ApiResponseSimple(
-        codigo=200,
-        mensaje="Contraseña actualizada correctamente.",
-        resultado={}
+        codigo=200, mensaje="Contraseña actualizada correctamente.", resultado={}
     )
 
 
@@ -276,7 +250,7 @@ async def change_password(
     "/{user_id}/activate",
     response_model=ApiResponse[UserToggleActiveResult],
     status_code=status.HTTP_200_OK,
-    summary="Activar usuario"
+    summary="Activar usuario",
 )
 async def activate_user(
     user_id: UUID,
@@ -302,10 +276,8 @@ async def activate_user(
         codigo=200,
         mensaje="Usuario activado correctamente.",
         resultado=UserToggleActiveResult(
-            id=user.id,
-            username=user.username,
-            is_active=user.is_active
-        )
+            id=user.id, username=user.username, is_active=user.is_active
+        ),
     )
 
 
@@ -313,7 +285,7 @@ async def activate_user(
     "/{user_id}/deactivate",
     response_model=ApiResponse[UserToggleActiveResult],
     status_code=status.HTTP_200_OK,
-    summary="Desactivar usuario"
+    summary="Desactivar usuario",
 )
 async def deactivate_user(
     user_id: UUID,
@@ -323,10 +295,7 @@ async def deactivate_user(
     current_user: CurrentUser = Depends(get_current_superuser),
     request_id: str | None = Depends(get_request_id),
 ):
-    user = await user_service.deactivate_user(
-        db,
-        user_id=user_id
-    )
+    user = await user_service.deactivate_user(db, user_id=user_id)
 
     await audit_log_service.log_event(
         db,
@@ -342,10 +311,8 @@ async def deactivate_user(
         codigo=200,
         mensaje="Usuario desactivado correctamente.",
         resultado=UserToggleActiveResult(
-            id=user.id,
-            username=user.username,
-            is_active=user.is_active
-        )
+            id=user.id, username=user.username, is_active=user.is_active
+        ),
     )
 
 
@@ -353,7 +320,7 @@ async def deactivate_user(
     "/{user_id}",
     response_model=ApiResponse[UserDeleteResult],
     status_code=status.HTTP_200_OK,
-    summary="Eliminar usuario"
+    summary="Eliminar usuario",
 )
 async def delete_user(
     user_id: UUID,
@@ -364,9 +331,7 @@ async def delete_user(
     request_id: str | None = Depends(get_request_id),
 ):
     user = await user_service.delete_user(
-        db,
-        user_id=user_id,
-        deleted_by=current_user.id
+        db, user_id=user_id, deleted_by=current_user.id
     )
 
     await audit_log_service.log_event(
@@ -383,10 +348,8 @@ async def delete_user(
         codigo=200,
         mensaje="Usuario eliminado correctamente.",
         resultado=UserDeleteResult(
-            id=user.id,
-            is_deleted=user.is_deleted,
-            deleted_at=user.deleted_at
-        )
+            id=user.id, is_deleted=user.is_deleted, deleted_at=user.deleted_at
+        ),
     )
 
 
@@ -394,7 +357,7 @@ async def delete_user(
     "/{user_id}/restore",
     response_model=ApiResponse[UserRestoreResult],
     status_code=status.HTTP_200_OK,
-    summary="Restaurar usuario"
+    summary="Restaurar usuario",
 )
 async def restore_user(
     user_id: UUID,
@@ -420,8 +383,6 @@ async def restore_user(
         codigo=200,
         mensaje="Usuario restaurado correctamente.",
         resultado=UserRestoreResult(
-            id=user.id,
-            is_deleted=user.is_deleted,
-            deleted_at=user.deleted_at
-        )
+            id=user.id, is_deleted=user.is_deleted, deleted_at=user.deleted_at
+        ),
     )

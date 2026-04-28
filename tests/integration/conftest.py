@@ -25,11 +25,9 @@ async def async_client() -> AsyncClient:
     """
     transport = ASGITransport(app=app)
 
-    async with AsyncClient(
-        transport=transport,
-        base_url="http://testserver"
-    ) as client:
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
         yield client
+
 
 @pytest.fixture(autouse=True)
 def reset_rate_limiter_state():
@@ -46,7 +44,7 @@ def reset_rate_limiter_state():
     try:
         storage.reset()
     except Exception:
-        pass        
+        pass
 
 
 @pytest.fixture
@@ -64,6 +62,7 @@ def build_public_register_payload():
     Construye payloads válidos para /auth/register
     con datos únicos por prueba.
     """
+
     def _build(suffix: str, **overrides: Any) -> dict[str, Any]:
         payload = {
             "first_name": "Maya",
@@ -98,6 +97,7 @@ def build_product_payload():
     Construye payloads válidos para /products
     con datos únicos por prueba.
     """
+
     def _build(suffix: str, **overrides: Any) -> dict[str, Any]:
         payload = {
             "name": f"Producto_{suffix}",
@@ -186,15 +186,14 @@ async def get_auth_headers(login_user):
     """
     Helper que devuelve headers Bearer listos para endpoints protegidos.
     """
+
     async def _headers(username: str, password: str = "Clave1234") -> dict[str, str]:
         response = await login_user(username=username, password=password)
         assert response.status_code == 200, response.text
 
         access_token = response.json()["access_token"]
 
-        return {
-            "Authorization": f"Bearer {access_token}"
-        }
+        return {"Authorization": f"Bearer {access_token}"}
 
     return _headers
 
@@ -206,6 +205,7 @@ async def create_and_login_user(register_public_user, get_auth_headers):
     1. registra usuario público
     2. obtiene headers Bearer
     """
+
     async def _create_and_login(**overrides: Any):
         registration = await register_public_user(**overrides)
         response = registration["response"]
@@ -214,8 +214,7 @@ async def create_and_login_user(register_public_user, get_auth_headers):
         assert response.status_code == 201, response.text
 
         headers = await get_auth_headers(
-            username=payload["username"],
-            password=payload["password"]
+            username=payload["username"], password=payload["password"]
         )
 
         return {
@@ -232,14 +231,13 @@ async def create_product(async_client: AsyncClient, build_product_payload):
     """
     Helper para crear productos usando un token Bearer.
     """
+
     async def _create(headers: dict[str, str], **overrides: Any):
         suffix = overrides.pop("suffix", uuid4().hex[:8])
         payload = build_product_payload(suffix, **overrides)
 
         response = await async_client.post(
-            "/api/v1/products",
-            json=payload,
-            headers=headers
+            "/api/v1/products", json=payload, headers=headers
         )
 
         return {
@@ -250,29 +248,30 @@ async def create_product(async_client: AsyncClient, build_product_payload):
 
     return _create
 
+
 @pytest_asyncio.fixture
 async def promote_user_to_superuser():
     """
     Promueve un usuario existente a superusuario dentro de la BD real.
     Se usa en pruebas de integración para rutas administrativas.
     """
+
     async def _promote(username: str):
         async with AsyncSession(engine, expire_on_commit=False) as session:
             await session.execute(
-                text(
-                    """
+                text("""
                     UPDATE users
                     SET is_superuser = TRUE,
                         role = 'admin',
                         is_active = TRUE
                     WHERE username = :username
-                    """
-                ),
+                    """),
                 {"username": username},
             )
             await session.commit()
 
     return _promote
+
 
 def _build_test_rate_limit_headers(
     headers: dict[str, str] | None = None,
@@ -280,6 +279,7 @@ def _build_test_rate_limit_headers(
     merged = dict(headers or {})
     merged.setdefault("X-Test-RateLimit-Key", uuid4().hex)
     return merged
+
 
 @pytest.fixture
 async def db_session():

@@ -15,7 +15,6 @@ from app.dependencies import (
     get_current_superuser,
     get_request_id,
     get_token_service,
-    get_user_repository,
 )
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import (
@@ -26,6 +25,9 @@ from app.schemas.auth import (
     TokenResponse,
     ForgotPasswordRequest,
     ResetPasswordRequest,
+)
+from app.core.exceptions.auth_exceptions import (
+    InvalidTokenException,
 )
 from app.schemas.response import ApiResponse, ApiResponseSimple
 from app.services.audit_log_service import AuditLogService
@@ -43,7 +45,7 @@ router = APIRouter()
     response_model=TokenResponse,
     status_code=status.HTTP_200_OK,
     summary="Iniciar sesión",
-    description="Autentica al usuario y devuelve un access token y un refresh token."
+    description="Autentica al usuario y devuelve un access token y un refresh token.",
 )
 @limiter.limit(settings.RATE_LIMIT_LOGIN)
 async def login(
@@ -55,15 +57,9 @@ async def login(
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     request_id: str | None = Depends(get_request_id),
 ):
-    login_data = LoginRequest(
-        username=form_data.username,
-        password=form_data.password
-    )
+    login_data = LoginRequest(username=form_data.username, password=form_data.password)
 
-    tokens = await auth_service.login(
-        db,
-        login_data=login_data
-    )
+    tokens = await auth_service.login(db, login_data=login_data)
 
     current_user = await auth_service.get_current_user(db, token=tokens.access_token)
 
@@ -73,7 +69,7 @@ async def login(
         entity="auth",
         actor=current_user,
         request_id=request_id,
-        detail="Inicio de sesión exitoso."
+        detail="Inicio de sesión exitoso.",
     )
 
     return tokens
@@ -84,25 +80,21 @@ async def login(
     response_model=ApiResponse[TokenResponse],
     status_code=status.HTTP_201_CREATED,
     summary="Registrar usuario",
-    description="Crea un nuevo usuario y devuelve tokens JWT inmediatamente."
+    description="Crea un nuevo usuario y devuelve tokens JWT inmediatamente.",
 )
 @limiter.limit(settings.RATE_LIMIT_REGISTER)
 async def register(
     request: Request,
     response: Response,
     user_data: PublicRegisterRequest = Body(
-        ...,
-        description="Datos públicos del nuevo usuario"
+        ..., description="Datos públicos del nuevo usuario"
     ),
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     request_id: str | None = Depends(get_request_id),
 ):
-    tokens = await auth_service.register(
-        db,
-        user_data=user_data
-    )
+    tokens = await auth_service.register(db, user_data=user_data)
 
     current_user = await auth_service.get_current_user(db, token=tokens.access_token)
 
@@ -113,13 +105,13 @@ async def register(
         entity_id=str(current_user.id),
         actor=current_user,
         request_id=request_id,
-        detail="Registro público de usuario exitoso."
+        detail="Registro público de usuario exitoso.",
     )
 
     return ApiResponse[TokenResponse](
         codigo=201,
         mensaje="Usuario registrado y autenticado correctamente.",
-        resultado=tokens
+        resultado=tokens,
     )
 
 
@@ -128,21 +120,17 @@ async def register(
     response_model=ApiResponse[TokenResponse],
     status_code=status.HTTP_200_OK,
     summary="Refrescar tokens",
-    description="Genera un nuevo par de tokens usando un refresh token válido."
+    description="Genera un nuevo par de tokens usando un refresh token válido.",
 )
 async def refresh_token(
-    refresh_data: RefreshTokenRequest = Body(
-        ...,
-        description="Refresh token válido"
-    ),
+    refresh_data: RefreshTokenRequest = Body(..., description="Refresh token válido"),
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     request_id: str | None = Depends(get_request_id),
 ):
     tokens = await auth_service.refresh_token(
-        db,
-        refresh_token=refresh_data.refresh_token
+        db, refresh_token=refresh_data.refresh_token
     )
 
     current_user = await auth_service.get_current_user(db, token=tokens.access_token)
@@ -153,13 +141,11 @@ async def refresh_token(
         entity="auth",
         actor=current_user,
         request_id=request_id,
-        detail="Renovación de tokens exitosa."
+        detail="Renovación de tokens exitosa.",
     )
 
     return ApiResponse[TokenResponse](
-        codigo=200,
-        mensaje="Tokens renovados correctamente.",
-        resultado=tokens
+        codigo=200, mensaje="Tokens renovados correctamente.", resultado=tokens
     )
 
 
@@ -261,6 +247,7 @@ async def reset_password(
         resultado={},
     )
 
+
 @router.get(
     "/debug-last-reset-token",
     response_model=ApiResponse[PasswordResetDebugResult],
@@ -283,9 +270,7 @@ async def debug_last_reset_token(
     )
 
     if user is None:
-        raise InvalidTokenException(
-            message="No existe un usuario con ese correo."
-        )
+        raise InvalidTokenException(message="No existe un usuario con ese correo.")
 
     db_token = await password_reset_token_service.get_latest_token_by_user_id(
         db,
@@ -308,12 +293,13 @@ async def debug_last_reset_token(
         ),
     )
 
+
 @router.get(
     "/me",
     response_model=ApiResponse[CurrentUser],
     status_code=status.HTTP_200_OK,
     summary="Obtener usuario autenticado",
-    description="Retorna los datos del usuario autenticado actual."
+    description="Retorna los datos del usuario autenticado actual.",
 )
 async def me(
     current_user: CurrentUser = Depends(get_current_active_user),
@@ -321,7 +307,7 @@ async def me(
     return ApiResponse[CurrentUser](
         codigo=200,
         mensaje="Usuario autenticado obtenido exitosamente.",
-        resultado=current_user
+        resultado=current_user,
     )
 
 
@@ -369,7 +355,7 @@ async def logout(
             entity="auth",
             actor=current_user,
             request_id=request_id,
-            detail="Cierre de sesión exitoso."
+            detail="Cierre de sesión exitoso.",
         )
 
     return ApiResponseSimple(
@@ -404,7 +390,7 @@ async def logout_all(
         entity="auth",
         actor=current_user,
         request_id=request_id,
-        detail=f"Cierre de todas las sesiones exitoso. Tokens revocados: {revoked_count}."
+        detail=f"Cierre de todas las sesiones exitoso. Tokens revocados: {revoked_count}.",
     )
 
     return ApiResponseSimple(

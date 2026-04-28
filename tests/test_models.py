@@ -8,7 +8,6 @@ sys.path.append(".")
 
 async def test_create_tables():
     from app.core.database import engine
-    from app.models.user import User
 
     print("\n--- INICIANDO REVISIÓN DE MODELOS EN POSTGRESQL ---")
 

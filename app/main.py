@@ -17,7 +17,6 @@ from app.core.logging_config import setup_logging
 from app.core.rate_limit import limiter
 from app.core.request_logging_middleware import RequestLoggingMiddleware
 
-
 setup_logging()
 
 

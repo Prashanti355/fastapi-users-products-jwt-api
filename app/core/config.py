@@ -56,7 +56,9 @@ class Settings(BaseSettings):
     @classmethod
     def validate_secret_key(cls, value: str) -> str:
         if len(value) < 32:
-            raise ValueError("SECRET_KEY debe tener al menos 32 caracteres para ser segura")
+            raise ValueError(
+                "SECRET_KEY debe tener al menos 32 caracteres para ser segura"
+            )
         return value
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")

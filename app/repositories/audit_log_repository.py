@@ -69,7 +69,9 @@ class AuditLogRepository:
         }
 
         sort_column = sortable_fields.get(sort_by, AuditLog.created_at)
-        sort_expression = desc(sort_column) if order.lower() == "desc" else asc(sort_column)
+        sort_expression = (
+            desc(sort_column) if order.lower() == "desc" else asc(sort_column)
+        )
 
         total_stmt = select(func.count()).select_from(AuditLog)
         items_stmt = select(AuditLog)
@@ -83,12 +85,7 @@ class AuditLogRepository:
 
         offset = (page - 1) * limit
 
-        items_stmt = (
-            items_stmt
-            .order_by(sort_expression)
-            .offset(offset)
-            .limit(limit)
-        )
+        items_stmt = items_stmt.order_by(sort_expression).offset(offset).limit(limit)
 
         items_result = await db.execute(items_stmt)
         items = items_result.scalars().all()

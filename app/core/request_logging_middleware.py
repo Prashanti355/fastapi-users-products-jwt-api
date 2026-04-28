@@ -5,7 +5,6 @@ from uuid import uuid4
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-
 technical_logger = logging.getLogger("app.technical")
 error_logger = logging.getLogger("app.error")
 

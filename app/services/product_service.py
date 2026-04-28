@@ -30,10 +30,7 @@ class ProductService:
         self.product_repo = product_repository
 
     async def create_product(
-        self,
-        db: AsyncSession,
-        *,
-        obj_in: ProductCreateRequest
+        self, db: AsyncSession, *, obj_in: ProductCreateRequest
     ) -> Product:
         """
         Registra un nuevo producto validando duplicidad
@@ -42,47 +39,29 @@ class ProductService:
         if obj_in.price <= Decimal("0"):
             raise InvalidProductPriceException()
 
-        product_exists = await self.product_repo.get_by_name(
-            db,
-            name=obj_in.name
-        )
+        product_exists = await self.product_repo.get_by_name(db, name=obj_in.name)
         if product_exists:
-            raise ProductAlreadyExistsException(
-                conflict_type="name",
-                value=obj_in.name
-            )
+            raise ProductAlreadyExistsException(conflict_type="name", value=obj_in.name)
 
         if obj_in.product_key:
             key_exists = await self.product_repo.get_by_product_key(
-                db,
-                product_key=obj_in.product_key
+                db, product_key=obj_in.product_key
             )
             if key_exists:
                 raise ProductAlreadyExistsException(
-                    conflict_type="product_key",
-                    value=obj_in.product_key
+                    conflict_type="product_key", value=obj_in.product_key
                 )
 
-        return await self.product_repo.create(
-            db,
-            obj_in=obj_in
-        )
+        return await self.product_repo.create(db, obj_in=obj_in)
 
     async def get_product_by_id(
-        self,
-        db: AsyncSession,
-        *,
-        product_id: Any,
-        include_deleted: bool = False
+        self, db: AsyncSession, *, product_id: Any, include_deleted: bool = False
     ) -> Product:
         """
         Retorna un producto por su ID o lanza 404
         si no existe.
         """
-        product = await self.product_repo.get(
-            db,
-            id=product_id
-        )
+        product = await self.product_repo.get(db, id=product_id)
 
         if not product:
             raise ProductNotFoundException(product_id=product_id)
@@ -118,7 +97,7 @@ class ProductService:
             search=search,
             status=status,
             product_type=product_type,
-            is_deleted=is_deleted
+            is_deleted=is_deleted,
         )
 
     async def update_product(
@@ -134,9 +113,7 @@ class ProductService:
         como parcial (PATCH).
         """
         db_obj = await self.get_product_by_id(
-            db,
-            product_id=product_id,
-            include_deleted=True
+            db, product_id=product_id, include_deleted=True
         )
 
         update_data = obj_in.model_dump(exclude_unset=True)
@@ -145,18 +122,11 @@ class ProductService:
             if update_data["price"] <= Decimal("0"):
                 raise InvalidProductPriceException()
 
-        if (
-            "name" in update_data
-            and update_data["name"] != db_obj.name
-        ):
-            existing = await self.product_repo.get_by_name(
-                db,
-                name=update_data["name"]
-            )
+        if "name" in update_data and update_data["name"] != db_obj.name:
+            existing = await self.product_repo.get_by_name(db, name=update_data["name"])
             if existing:
                 raise ProductAlreadyExistsException(
-                    conflict_type="name",
-                    value=update_data["name"]
+                    conflict_type="name", value=update_data["name"]
                 )
 
         if (
@@ -165,65 +135,40 @@ class ProductService:
             and update_data["product_key"] != db_obj.product_key
         ):
             existing = await self.product_repo.get_by_product_key(
-                db,
-                product_key=update_data["product_key"]
+                db, product_key=update_data["product_key"]
             )
             if existing:
                 raise ProductAlreadyExistsException(
-                    conflict_type="product_key",
-                    value=update_data["product_key"]
+                    conflict_type="product_key", value=update_data["product_key"]
                 )
 
-        return await self.product_repo.update(
-            db,
-            db_obj=db_obj,
-            obj_in=update_data
-        )
+        return await self.product_repo.update(db, db_obj=db_obj, obj_in=update_data)
 
     async def delete_product(
-        self,
-        db: AsyncSession,
-        *,
-        product_id: Any,
-        hard_delete: bool = False
+        self, db: AsyncSession, *, product_id: Any, hard_delete: bool = False
     ) -> Optional[Product]:
         """
         Elimina un producto. Puede ser eliminación
         física o lógica.
         """
         db_obj = await self.get_product_by_id(
-            db,
-            product_id=product_id,
-            include_deleted=True
+            db, product_id=product_id, include_deleted=True
         )
 
         if hard_delete:
-            return await self.product_repo.remove(
-                db,
-                id=product_id
-            )
+            return await self.product_repo.remove(db, id=product_id)
 
         if db_obj.is_deleted:
             raise ProductAlreadyDeletedException()
 
-        return await self.product_repo.soft_delete(
-            db,
-            product_id=product_id
-        )
+        return await self.product_repo.soft_delete(db, product_id=product_id)
 
-    async def restore_product(
-        self,
-        db: AsyncSession,
-        *,
-        product_id: Any
-    ) -> Product:
+    async def restore_product(self, db: AsyncSession, *, product_id: Any) -> Product:
         """
         Restaura un producto eliminado lógicamente.
         """
         db_obj = await self.get_product_by_id(
-            db,
-            product_id=product_id,
-            include_deleted=True
+            db, product_id=product_id, include_deleted=True
         )
 
         if not db_obj.is_deleted:
@@ -235,26 +180,15 @@ class ProductService:
             "deleted_at": None,
         }
 
-        return await self.product_repo.update(
-            db,
-            db_obj=db_obj,
-            obj_in=update_data
-        )
+        return await self.product_repo.update(db, db_obj=db_obj, obj_in=update_data)
 
-    async def activate_product(
-        self,
-        db: AsyncSession,
-        *,
-        product_id: Any
-    ) -> Product:
+    async def activate_product(self, db: AsyncSession, *, product_id: Any) -> Product:
         """
         Activa un producto que estaba no disponible
         o marcado como eliminado.
         """
         db_obj = await self.get_product_by_id(
-            db,
-            product_id=product_id,
-            include_deleted=True
+            db, product_id=product_id, include_deleted=True
         )
 
         if db_obj.status and not db_obj.is_deleted:
@@ -266,31 +200,17 @@ class ProductService:
             "deleted_at": None,
         }
 
-        return await self.product_repo.update(
-            db,
-            db_obj=db_obj,
-            obj_in=update_data
-        )
+        return await self.product_repo.update(db, db_obj=db_obj, obj_in=update_data)
 
-    async def deactivate_product(
-        self,
-        db: AsyncSession,
-        *,
-        product_id: Any
-    ) -> Product:
+    async def deactivate_product(self, db: AsyncSession, *, product_id: Any) -> Product:
         """
         Desactiva un producto sin eliminarlo.
         """
-        db_obj = await self.get_product_by_id(
-            db,
-            product_id=product_id
-        )
+        db_obj = await self.get_product_by_id(db, product_id=product_id)
 
         if not db_obj.status:
             raise ProductAlreadyInactiveException()
 
         return await self.product_repo.update(
-            db,
-            db_obj=db_obj,
-            obj_in={"status": False}
+            db, db_obj=db_obj, obj_in={"status": False}
         )

@@ -77,6 +77,7 @@ def password_reset_token_service():
     service.mark_as_used = AsyncMock()
     return service
 
+
 @pytest.fixture
 def email_service():
     service = MagicMock()
@@ -117,7 +118,9 @@ def db_session():
 
 
 @pytest.mark.asyncio
-async def test_login_success(auth_service, user_repository, token_service, db_session, mocker):
+async def test_login_success(
+    auth_service, user_repository, token_service, db_session, mocker
+):
     user = build_user(password="hashed_pw")
     user_repository.get_by_username.return_value = user
     token_service.generate_tokens.return_value = SimpleNamespace(
@@ -129,8 +132,7 @@ async def test_login_success(auth_service, user_repository, token_service, db_se
     mocker.patch("app.services.auth_service.verify_password", return_value=True)
 
     result = await auth_service.login(
-        db_session,
-        login_data=LoginRequest(username="maya", password="Clave1234")
+        db_session, login_data=LoginRequest(username="maya", password="Clave1234")
     )
 
     assert result.access_token == "access"
@@ -141,42 +143,47 @@ async def test_login_success(auth_service, user_repository, token_service, db_se
 
 
 @pytest.mark.asyncio
-async def test_login_raises_when_user_not_found(auth_service, user_repository, db_session):
+async def test_login_raises_when_user_not_found(
+    auth_service, user_repository, db_session
+):
     user_repository.get_by_username.return_value = None
 
     with pytest.raises(InvalidCredentialsException):
         await auth_service.login(
-            db_session,
-            login_data=LoginRequest(username="maya", password="Clave1234")
+            db_session, login_data=LoginRequest(username="maya", password="Clave1234")
         )
 
 
 @pytest.mark.asyncio
-async def test_login_raises_when_password_is_incorrect(auth_service, user_repository, db_session, mocker):
+async def test_login_raises_when_password_is_incorrect(
+    auth_service, user_repository, db_session, mocker
+):
     user_repository.get_by_username.return_value = build_user(password="hashed_pw")
     mocker.patch("app.services.auth_service.verify_password", return_value=False)
 
     with pytest.raises(InvalidCredentialsException):
         await auth_service.login(
-            db_session,
-            login_data=LoginRequest(username="maya", password="Clave1234")
+            db_session, login_data=LoginRequest(username="maya", password="Clave1234")
         )
 
 
 @pytest.mark.asyncio
-async def test_login_raises_when_user_is_inactive(auth_service, user_repository, db_session, mocker):
+async def test_login_raises_when_user_is_inactive(
+    auth_service, user_repository, db_session, mocker
+):
     user_repository.get_by_username.return_value = build_user(is_active=False)
     mocker.patch("app.services.auth_service.verify_password", return_value=True)
 
     with pytest.raises(InactiveUserException):
         await auth_service.login(
-            db_session,
-            login_data=LoginRequest(username="maya", password="Clave1234")
+            db_session, login_data=LoginRequest(username="maya", password="Clave1234")
         )
 
 
 @pytest.mark.asyncio
-async def test_register_success(auth_service, user_repository, token_service, db_session, mocker):
+async def test_register_success(
+    auth_service, user_repository, token_service, db_session, mocker
+):
     user_repository.get_by_username.return_value = None
     user_repository.get_by_email.return_value = None
     token_service.generate_tokens.return_value = SimpleNamespace(
@@ -185,7 +192,9 @@ async def test_register_success(auth_service, user_repository, token_service, db
         token_type="bearer",
         expires_in=1800,
     )
-    mocker.patch("app.services.auth_service.get_password_hash", return_value="hashed_pw")
+    mocker.patch(
+        "app.services.auth_service.get_password_hash", return_value="hashed_pw"
+    )
 
     user_data = PublicRegisterRequest(
         first_name="Maya",
@@ -204,7 +213,9 @@ async def test_register_success(auth_service, user_repository, token_service, db
 
 
 @pytest.mark.asyncio
-async def test_register_raises_when_username_already_exists(auth_service, user_repository, db_session):
+async def test_register_raises_when_username_already_exists(
+    auth_service, user_repository, db_session
+):
     user_repository.get_by_username.return_value = build_user()
 
     user_data = PublicRegisterRequest(
@@ -220,7 +231,9 @@ async def test_register_raises_when_username_already_exists(auth_service, user_r
 
 
 @pytest.mark.asyncio
-async def test_register_raises_when_email_already_exists(auth_service, user_repository, db_session):
+async def test_register_raises_when_email_already_exists(
+    auth_service, user_repository, db_session
+):
     user_repository.get_by_username.return_value = None
     user_repository.get_by_email.return_value = build_user(email="maya@example.com")
 
@@ -237,7 +250,9 @@ async def test_register_raises_when_email_already_exists(auth_service, user_repo
 
 
 @pytest.mark.asyncio
-async def test_register_forces_public_user_defaults(auth_service, user_repository, token_service, db_session, mocker):
+async def test_register_forces_public_user_defaults(
+    auth_service, user_repository, token_service, db_session, mocker
+):
     user_repository.get_by_username.return_value = None
     user_repository.get_by_email.return_value = None
     token_service.generate_tokens.return_value = SimpleNamespace(
@@ -246,7 +261,9 @@ async def test_register_forces_public_user_defaults(auth_service, user_repositor
         token_type="bearer",
         expires_in=1800,
     )
-    mocker.patch("app.services.auth_service.get_password_hash", return_value="hashed_pw")
+    mocker.patch(
+        "app.services.auth_service.get_password_hash", return_value="hashed_pw"
+    )
 
     user_data = PublicRegisterRequest(
         first_name="Maya",
@@ -267,7 +284,9 @@ async def test_register_forces_public_user_defaults(auth_service, user_repositor
 
 
 @pytest.mark.asyncio
-async def test_refresh_token_success(auth_service, user_repository, token_service, db_session):
+async def test_refresh_token_success(
+    auth_service, user_repository, token_service, db_session
+):
     user = build_user()
     token_service.verify_refresh_token.return_value = TokenData(sub=str(user.id))
     user_repository.get.return_value = user
@@ -278,50 +297,44 @@ async def test_refresh_token_success(auth_service, user_repository, token_servic
         expires_in=1800,
     )
 
-    result = await auth_service.refresh_token(
-        db_session,
-        refresh_token="refresh_token"
-    )
+    result = await auth_service.refresh_token(db_session, refresh_token="refresh_token")
 
     assert result.access_token == "new_access"
     token_service.generate_tokens.assert_called_once_with(user)
 
 
 @pytest.mark.asyncio
-async def test_refresh_token_raises_when_user_does_not_exist(auth_service, user_repository, token_service, db_session):
+async def test_refresh_token_raises_when_user_does_not_exist(
+    auth_service, user_repository, token_service, db_session
+):
     token_service.verify_refresh_token.return_value = TokenData(sub=str(uuid4()))
     user_repository.get.return_value = None
 
     with pytest.raises(TokenRefreshException):
-        await auth_service.refresh_token(
-            db_session,
-            refresh_token="refresh_token"
-        )
+        await auth_service.refresh_token(db_session, refresh_token="refresh_token")
 
 
 @pytest.mark.asyncio
-async def test_refresh_token_raises_when_user_is_inactive(auth_service, user_repository, token_service, db_session):
+async def test_refresh_token_raises_when_user_is_inactive(
+    auth_service, user_repository, token_service, db_session
+):
     user = build_user(is_active=False)
     token_service.verify_refresh_token.return_value = TokenData(sub=str(user.id))
     user_repository.get.return_value = user
 
     with pytest.raises(InactiveUserException):
-        await auth_service.refresh_token(
-            db_session,
-            refresh_token="refresh_token"
-        )
+        await auth_service.refresh_token(db_session, refresh_token="refresh_token")
 
 
 @pytest.mark.asyncio
-async def test_get_current_user_success(auth_service, user_repository, token_service, db_session):
+async def test_get_current_user_success(
+    auth_service, user_repository, token_service, db_session
+):
     user = build_user()
     token_service.verify_access_token.return_value = TokenData(sub=str(user.id))
     user_repository.get.return_value = user
 
-    result = await auth_service.get_current_user(
-        db_session,
-        token="access_token"
-    )
+    result = await auth_service.get_current_user(db_session, token="access_token")
 
     assert isinstance(result, CurrentUser)
     assert result.id == user.id
@@ -330,28 +343,26 @@ async def test_get_current_user_success(auth_service, user_repository, token_ser
 
 
 @pytest.mark.asyncio
-async def test_get_current_user_raises_when_user_does_not_exist(auth_service, user_repository, token_service, db_session):
+async def test_get_current_user_raises_when_user_does_not_exist(
+    auth_service, user_repository, token_service, db_session
+):
     token_service.verify_access_token.return_value = TokenData(sub=str(uuid4()))
     user_repository.get.return_value = None
 
     with pytest.raises(InvalidTokenException):
-        await auth_service.get_current_user(
-            db_session,
-            token="access_token"
-        )
+        await auth_service.get_current_user(db_session, token="access_token")
 
 
 @pytest.mark.asyncio
-async def test_get_current_user_raises_when_user_is_inactive(auth_service, user_repository, token_service, db_session):
+async def test_get_current_user_raises_when_user_is_inactive(
+    auth_service, user_repository, token_service, db_session
+):
     user = build_user(is_active=False)
     token_service.verify_access_token.return_value = TokenData(sub=str(user.id))
     user_repository.get.return_value = user
 
     with pytest.raises(InactiveUserException):
-        await auth_service.get_current_user(
-            db_session,
-            token="access_token"
-        )
+        await auth_service.get_current_user(db_session, token="access_token")
 
 
 @pytest.mark.asyncio
@@ -608,6 +619,7 @@ async def test_reset_password_success_hashes_password_marks_token_used_and_revok
         revoke_reason="password_reset",
     )
 
+
 @pytest.mark.asyncio
 async def test_forgot_password_creates_token_but_does_not_send_email_when_email_service_is_not_configured(
     user_repository,
@@ -653,6 +665,7 @@ async def test_forgot_password_creates_token_but_does_not_send_email_when_email_
     )
     email_service.send_password_reset_email.assert_not_called()
 
+
 @pytest.mark.asyncio
 async def test_forgot_password_creates_token_but_does_not_send_email_when_frontend_url_is_missing(
     auth_service_full,
@@ -684,4 +697,4 @@ async def test_forgot_password_creates_token_but_does_not_send_email_when_fronte
         user_id=user.id,
         expires_in_minutes=30,
     )
-    email_service.send_password_reset_email.assert_not_called()        
+    email_service.send_password_reset_email.assert_not_called()

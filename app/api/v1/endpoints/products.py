@@ -35,34 +35,23 @@ router = APIRouter()
     response_model=ApiResponse[PagedResponse[ProductSchema]],
     status_code=status.HTTP_200_OK,
     summary="Obtener todos los productos",
-    description="Devuelve una lista paginada de productos con filtros y ordenamiento."
+    description="Devuelve una lista paginada de productos con filtros y ordenamiento.",
 )
 async def list_products(
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1, description="Número de página"),
     limit: int = Query(10, ge=1, le=100, description="Registros por página"),
     search: Optional[str] = Query(
-        None,
-        description="Buscar por nombre, descripción o clave"
+        None, description="Buscar por nombre, descripción o clave"
     ),
     status_filter: Optional[bool] = Query(
-        None,
-        alias="status",
-        description="Filtrar por disponibilidad"
+        None, alias="status", description="Filtrar por disponibilidad"
     ),
     product_type: Optional[str] = Query(
-        None,
-        alias="type",
-        description="Filtrar por tipo de producto"
+        None, alias="type", description="Filtrar por tipo de producto"
     ),
-    sort_by: str = Query(
-        "created_at",
-        description="Campo por el cual ordenar"
-    ),
-    order: str = Query(
-        "desc",
-        description="Dirección del ordenamiento"
-    ),
+    sort_by: str = Query("created_at", description="Campo por el cual ordenar"),
+    order: str = Query("desc", description="Dirección del ordenamiento"),
     service: ProductService = Depends(get_product_service),
 ):
     result = await service.get_multi_products(
@@ -96,18 +85,14 @@ async def list_products(
     response_model=ApiResponse[ProductSchema],
     status_code=status.HTTP_200_OK,
     summary="Obtener producto por ID",
-    description="Devuelve la información detallada de un producto específico por su ID."
+    description="Devuelve la información detallada de un producto específico por su ID.",
 )
 async def get_product_by_id(
     id: UUID = Path(..., description="ID del producto a obtener"),
     db: AsyncSession = Depends(get_db),
     service: ProductService = Depends(get_product_service),
 ):
-    product = await service.get_product_by_id(
-        db,
-        product_id=id,
-        include_deleted=False
-    )
+    product = await service.get_product_by_id(db, product_id=id, include_deleted=False)
 
     return ApiResponse[ProductSchema](
         codigo=200,
@@ -121,23 +106,19 @@ async def get_product_by_id(
     response_model=ApiResponse[ProductBasic],
     status_code=status.HTTP_201_CREATED,
     summary="Crear un nuevo producto",
-    description="Crea un nuevo producto con la información proporcionada."
+    description="Crea un nuevo producto con la información proporcionada.",
 )
 async def create_product(
     db: AsyncSession = Depends(get_db),
     product_data: ProductCreateRequest = Body(
-        ...,
-        description="Datos del nuevo producto"
+        ..., description="Datos del nuevo producto"
     ),
     service: ProductService = Depends(get_product_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_active_user),
     request_id: str | None = Depends(get_request_id),
 ):
-    new_product = await service.create_product(
-        db,
-        obj_in=product_data
-    )
+    new_product = await service.create_product(db, obj_in=product_data)
 
     await audit_log_service.log_event(
         db,
@@ -161,14 +142,13 @@ async def create_product(
     response_model=ApiResponse[ProductBasic],
     status_code=status.HTTP_200_OK,
     summary="Actualizar producto por ID (completo)",
-    description="Actualiza toda la información de un producto específico."
+    description="Actualiza toda la información de un producto específico.",
 )
 async def update_product(
     db: AsyncSession = Depends(get_db),
     id: UUID = Path(..., description="ID del producto a actualizar"),
     product_data: ProductUpdateRequest = Body(
-        ...,
-        description="Datos completos del producto"
+        ..., description="Datos completos del producto"
     ),
     service: ProductService = Depends(get_product_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
@@ -176,9 +156,7 @@ async def update_product(
     request_id: str | None = Depends(get_request_id),
 ):
     updated_product = await service.update_product(
-        db,
-        product_id=id,
-        obj_in=product_data
+        db, product_id=id, obj_in=product_data
     )
 
     await audit_log_service.log_event(
@@ -203,17 +181,13 @@ async def update_product(
     response_model=ApiResponse[ProductBasic],
     status_code=status.HTTP_200_OK,
     summary="Actualizar parcialmente producto por ID",
-    description="Actualiza solo los campos enviados del producto."
+    description="Actualiza solo los campos enviados del producto.",
 )
 async def partial_update_product(
     db: AsyncSession = Depends(get_db),
-    id: UUID = Path(
-        ...,
-        description="ID del producto a actualizar parcialmente"
-    ),
+    id: UUID = Path(..., description="ID del producto a actualizar parcialmente"),
     product_data: ProductPartialUpdateRequest = Body(
-        ...,
-        description="Datos parciales del producto"
+        ..., description="Datos parciales del producto"
     ),
     service: ProductService = Depends(get_product_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
@@ -221,9 +195,7 @@ async def partial_update_product(
     request_id: str | None = Depends(get_request_id),
 ):
     updated_product = await service.update_product(
-        db,
-        product_id=id,
-        obj_in=product_data
+        db, product_id=id, obj_in=product_data
     )
 
     await audit_log_service.log_event(
@@ -248,7 +220,7 @@ async def partial_update_product(
     response_model=ApiResponse[ProductToggleStatusResult],
     status_code=status.HTTP_200_OK,
     summary="Activar un producto",
-    description="Activa un producto que se encontraba no disponible."
+    description="Activa un producto que se encontraba no disponible.",
 )
 async def activate_product(
     db: AsyncSession = Depends(get_db),
@@ -282,7 +254,7 @@ async def activate_product(
     response_model=ApiResponse[ProductToggleStatusResult],
     status_code=status.HTTP_200_OK,
     summary="Desactivar un producto",
-    description="Desactiva un producto sin eliminarlo del sistema."
+    description="Desactiva un producto sin eliminarlo del sistema.",
 )
 async def deactivate_product(
     db: AsyncSession = Depends(get_db),
@@ -316,25 +288,18 @@ async def deactivate_product(
     response_model=ApiResponse[ProductDeleteResult],
     status_code=status.HTTP_200_OK,
     summary="Eliminar producto por ID",
-    description="Realiza borrado lógico por defecto o físico si hard=true."
+    description="Realiza borrado lógico por defecto o físico si hard=true.",
 )
 async def delete_product(
     db: AsyncSession = Depends(get_db),
     id: UUID = Path(..., description="ID del producto a eliminar"),
-    hard: bool = Query(
-        False,
-        description="Si es true, realiza eliminación física"
-    ),
+    hard: bool = Query(False, description="Si es true, realiza eliminación física"),
     service: ProductService = Depends(get_product_service),
     audit_log_service: AuditLogService = Depends(get_audit_log_service),
     current_user: CurrentUser = Depends(get_current_superuser),
     request_id: str | None = Depends(get_request_id),
 ):
-    deleted_product = await service.delete_product(
-        db,
-        product_id=id,
-        hard_delete=hard
-    )
+    deleted_product = await service.delete_product(db, product_id=id, hard_delete=hard)
 
     delete_mode = "físicamente" if hard else "lógicamente"
 
@@ -360,7 +325,7 @@ async def delete_product(
     response_model=ApiResponse[ProductRestoreResult],
     status_code=status.HTTP_200_OK,
     summary="Restaurar producto por ID",
-    description="Restaura un producto previamente eliminado lógicamente."
+    description="Restaura un producto previamente eliminado lógicamente.",
 )
 async def restore_product(
     db: AsyncSession = Depends(get_db),
@@ -370,10 +335,7 @@ async def restore_product(
     current_user: CurrentUser = Depends(get_current_superuser),
     request_id: str | None = Depends(get_request_id),
 ):
-    restored_product = await service.restore_product(
-        db,
-        product_id=id
-    )
+    restored_product = await service.restore_product(db, product_id=id)
 
     await audit_log_service.log_event(
         db,

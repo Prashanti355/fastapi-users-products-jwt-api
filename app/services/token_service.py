@@ -10,13 +10,15 @@ from app.core.exceptions.auth_exceptions import (
 )
 from app.schemas.auth import TokenResponse
 
+
 class TokenPayload(dict):
     def __getattr__(self, item):
         try:
             return self[item]
         except KeyError as exc:
             raise AttributeError(item) from exc
-        
+
+
 class TokenService:
 
     @staticmethod
@@ -83,11 +85,10 @@ class TokenService:
 
         token = TokenService._encode_token(payload)
         return token, payload["jti"], expires_at
-    
+
     @staticmethod
     def get_access_token_expires_in() -> int:
         return settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
-
 
     @staticmethod
     def generate_tokens(user) -> TokenResponse:

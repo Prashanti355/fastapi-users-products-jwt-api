@@ -12,11 +12,7 @@ from app.schemas.product import (
 
 
 class ProductRepository(
-    BaseRepository[
-        Product,
-        ProductCreateRequest,
-        ProductPartialUpdateRequest
-    ]
+    BaseRepository[Product, ProductCreateRequest, ProductPartialUpdateRequest]
 ):
     def __init__(self):
         """
@@ -25,12 +21,7 @@ class ProductRepository(
         """
         super().__init__(Product)
 
-    async def get_by_name(
-        self,
-        db: AsyncSession,
-        *,
-        name: str
-    ) -> Optional[Product]:
+    async def get_by_name(self, db: AsyncSession, *, name: str) -> Optional[Product]:
         """
         Busca un producto por su nombre.
         Sirve para validar duplicados.
@@ -40,18 +31,13 @@ class ProductRepository(
         return result.scalar_one_or_none()
 
     async def get_by_product_key(
-        self,
-        db: AsyncSession,
-        *,
-        product_key: str
+        self, db: AsyncSession, *, product_key: str
     ) -> Optional[Product]:
         """
         Busca un producto por su clave única.
         Sirve para validar duplicados.
         """
-        statement = select(Product).where(
-            Product.product_key == product_key
-        )
+        statement = select(Product).where(Product.product_key == product_key)
         result = await db.execute(statement)
         return result.scalar_one_or_none()
 
@@ -72,9 +58,7 @@ class ProductRepository(
         Lista paginada especializada para productos,
         con filtros de disponibilidad, tipo y búsqueda.
         """
-        filters: Dict[str, Any] = {
-            "is_deleted": is_deleted
-        }
+        filters: Dict[str, Any] = {"is_deleted": is_deleted}
 
         if status is not None:
             filters["status"] = status
@@ -90,26 +74,14 @@ class ProductRepository(
             order=order,
             filters=filters,
             search=search,
-            search_fields=[
-                "name",
-                "description",
-                "product_key"
-            ]
+            search_fields=["name", "description", "product_key"],
         )
 
     async def soft_delete(
-        self,
-        db: AsyncSession,
-        *,
-        product_id: Any,
-        **kwargs
+        self, db: AsyncSession, *, product_id: Any, **kwargs
     ) -> Optional[Product]:
         """
         Wrapper de eliminación lógica específico
         para productos.
         """
-        return await self.soft_remove(
-            db,
-            id=product_id,
-            **kwargs
-        )
+        return await self.soft_remove(db, id=product_id, **kwargs)

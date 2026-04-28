@@ -72,12 +72,14 @@ async def test_cleanup_deletes_expired_and_old_revoked_tokens(db_session):
         revoke_reason="logout",
     )
 
-    db_session.add_all([
-        expired_token,
-        old_revoked_token,
-        active_token,
-        recent_revoked_token,
-    ])
+    db_session.add_all(
+        [
+            expired_token,
+            old_revoked_token,
+            active_token,
+            recent_revoked_token,
+        ]
+    )
     await db_session.commit()
 
     repository = RefreshTokenRepository()
@@ -91,9 +93,13 @@ async def test_cleanup_deletes_expired_and_old_revoked_tokens(db_session):
     assert deleted_count == 2
 
     remaining_expired = await repository.get_by_jti(db_session, jti=expired_token.jti)
-    remaining_old_revoked = await repository.get_by_jti(db_session, jti=old_revoked_token.jti)
+    remaining_old_revoked = await repository.get_by_jti(
+        db_session, jti=old_revoked_token.jti
+    )
     remaining_active = await repository.get_by_jti(db_session, jti=active_token.jti)
-    remaining_recent_revoked = await repository.get_by_jti(db_session, jti=recent_revoked_token.jti)
+    remaining_recent_revoked = await repository.get_by_jti(
+        db_session, jti=recent_revoked_token.jti
+    )
 
     assert remaining_expired is None
     assert remaining_old_revoked is None

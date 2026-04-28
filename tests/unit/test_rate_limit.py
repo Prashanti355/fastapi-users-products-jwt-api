@@ -16,7 +16,9 @@ def test_rate_limit_key_func_uses_test_header_in_testing_environment(mocker):
     assert result == "test:login-user-1"
 
 
-def test_rate_limit_key_func_falls_back_to_remote_address_in_testing_without_header(mocker):
+def test_rate_limit_key_func_falls_back_to_remote_address_in_testing_without_header(
+    mocker,
+):
     mocker.patch.object(rate_limit.settings, "ENVIRONMENT", "testing")
     mocker.patch(
         "app.core.rate_limit.get_remote_address",
@@ -51,6 +53,9 @@ def test_rate_limit_key_func_uses_remote_address_outside_testing(mocker):
 def test_limiter_uses_settings_values():
     assert rate_limit.limiter._key_func is rate_limit.rate_limit_key_func
     assert rate_limit.limiter._default_limits == rate_limit.settings.RATE_LIMIT_DEFAULTS
-    assert rate_limit.limiter._headers_enabled == rate_limit.settings.RATE_LIMIT_HEADERS_ENABLED
+    assert (
+        rate_limit.limiter._headers_enabled
+        == rate_limit.settings.RATE_LIMIT_HEADERS_ENABLED
+    )
     assert rate_limit.limiter._storage_uri == rate_limit.settings.RATE_LIMIT_STORAGE_URI
     assert rate_limit.limiter.enabled == rate_limit.settings.RATE_LIMIT_ENABLED

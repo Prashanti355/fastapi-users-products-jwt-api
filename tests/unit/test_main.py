@@ -33,7 +33,9 @@ def test_app_configuration_matches_expected_values():
 
 
 def test_app_registers_expected_middlewares():
-    middleware_classes = {middleware.cls for middleware in main_module.app.user_middleware}
+    middleware_classes = {
+        middleware.cls for middleware in main_module.app.user_middleware
+    }
 
     assert RequestLoggingMiddleware in middleware_classes
     assert CORSMiddleware in middleware_classes

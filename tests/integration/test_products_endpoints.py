@@ -13,7 +13,9 @@ async def test_public_can_list_products(async_client):
 
 
 @pytest.mark.asyncio
-async def test_public_cannot_create_product_without_token(async_client, build_product_payload):
+async def test_public_cannot_create_product_without_token(
+    async_client, build_product_payload
+):
     payload = build_product_payload("publicfail")
 
     response = await async_client.post(
@@ -80,10 +82,7 @@ async def test_authenticated_user_can_partial_update_product(
 
     response = await async_client.patch(
         f"/api/v1/products/{product_id}",
-        json={
-            "price": 13999.99,
-            "description": "Producto actualizado parcialmente"
-        },
+        json={"price": 13999.99, "description": "Producto actualizado parcialmente"},
         headers=headers,
     )
 
@@ -131,8 +130,7 @@ async def test_superuser_can_deactivate_and_activate_product(
 
     await promote_user_to_superuser(admin_payload["username"])
     admin_headers = await get_auth_headers(
-        username=admin_payload["username"],
-        password=admin_payload["password"]
+        username=admin_payload["username"], password=admin_payload["password"]
     )
 
     created = await create_product(headers=admin_headers)
@@ -175,8 +173,7 @@ async def test_superuser_can_delete_and_restore_product(
 
     await promote_user_to_superuser(admin_payload["username"])
     admin_headers = await get_auth_headers(
-        username=admin_payload["username"],
-        password=admin_payload["password"]
+        username=admin_payload["username"], password=admin_payload["password"]
     )
 
     created = await create_product(headers=admin_headers)
@@ -219,8 +216,7 @@ async def test_deleted_product_is_not_visible_in_public_get(
 
     await promote_user_to_superuser(admin_payload["username"])
     admin_headers = await get_auth_headers(
-        username=admin_payload["username"],
-        password=admin_payload["password"]
+        username=admin_payload["username"], password=admin_payload["password"]
     )
 
     created = await create_product(headers=admin_headers)
@@ -255,8 +251,7 @@ async def test_deleted_product_does_not_appear_in_public_list(
 
     await promote_user_to_superuser(admin_payload["username"])
     admin_headers = await get_auth_headers(
-        username=admin_payload["username"],
-        password=admin_payload["password"]
+        username=admin_payload["username"], password=admin_payload["password"]
     )
 
     created = await create_product(headers=admin_headers)
@@ -286,7 +281,9 @@ async def test_deleted_product_does_not_appear_in_public_list(
 
 @pytest.mark.asyncio
 async def test_public_get_nonexistent_product_returns_404(async_client):
-    response = await async_client.get("/api/v1/products/00000000-0000-0000-0000-000000000000")
+    response = await async_client.get(
+        "/api/v1/products/00000000-0000-0000-0000-000000000000"
+    )
 
     assert response.status_code == 404
     body = response.json()

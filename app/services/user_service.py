@@ -30,11 +30,7 @@ class UserService:
         self.user_repo = user_repo
 
     def _ensure_no_privileged_self_update(
-        self,
-        *,
-        db_obj: User,
-        update_data: dict,
-        current_user: CurrentUser | None
+        self, *, db_obj: User, update_data: dict, current_user: CurrentUser | None
     ) -> None:
         """
         Evita que un usuario no superusuario modifique campos administrativos
@@ -65,12 +61,8 @@ class UserService:
                     + ", ".join(attempted_changes)
                 )
             )
-    async def get_user_by_id(
-        self,
-        db: AsyncSession,
-        *,
-        user_id: Any
-    ) -> User:
+
+    async def get_user_by_id(self, db: AsyncSession, *, user_id: Any) -> User:
         db_obj = await self.user_repo.get(db, user_id)
         if not db_obj:
             raise UserNotFoundException()
@@ -96,20 +88,17 @@ class UserService:
             order=order,
             search=search,
             is_active=is_active,
-            is_deleted=is_deleted
+            is_deleted=is_deleted,
         )
         return {
             "total": result["total"],
             "page": result["page"],
             "limit": result["limit"],
-            "data": result["items"]
+            "data": result["items"],
         }
 
     async def create_user(
-        self,
-        db: AsyncSession,
-        *,
-        user_in: UserCreateRequest
+        self, db: AsyncSession, *, user_in: UserCreateRequest
     ) -> User:
         if user_in.email:
             email_user = await self.user_repo.get_by_email(db, email=user_in.email)
@@ -117,8 +106,7 @@ class UserService:
                 raise UserAlreadyExistsException("email", user_in.email)
 
         username_user = await self.user_repo.get_by_username(
-            db,
-            username=user_in.username
+            db, username=user_in.username
         )
         if username_user:
             raise UserAlreadyExistsException("username", user_in.username)
@@ -140,9 +128,7 @@ class UserService:
 
         # Check for privileged field modifications
         self._ensure_no_privileged_self_update(
-            db_obj=db_obj,
-            update_data=user_in.model_dump(),
-            current_user=current_user
+            db_obj=db_obj, update_data=user_in.model_dump(), current_user=current_user
         )
 
         if user_in.email and user_in.email != db_obj.email:
@@ -152,8 +138,7 @@ class UserService:
 
         if user_in.username != db_obj.username:
             username_user = await self.user_repo.get_by_username(
-                db,
-                username=user_in.username
+                db, username=user_in.username
             )
             if username_user:
                 raise UserAlreadyExistsException("username", user_in.username)
@@ -161,17 +146,11 @@ class UserService:
         update_data = user_in.model_dump()
 
         self._ensure_no_privileged_self_update(
-            db_obj=db_obj,
-            update_data=update_data,
-            current_user=current_user
+            db_obj=db_obj, update_data=update_data, current_user=current_user
         )
 
         update_data["password"] = get_password_hash(user_in.password)
-        return await self.user_repo.update(
-            db,
-            db_obj=db_obj,
-            obj_in=update_data
-        )
+        return await self.user_repo.update(db, db_obj=db_obj, obj_in=update_data)
 
     async def partial_update_user(
         self,
@@ -190,8 +169,7 @@ class UserService:
 
         if user_in.username and user_in.username != db_obj.username:
             username_user = await self.user_repo.get_by_username(
-                db,
-                username=user_in.username
+                db, username=user_in.username
             )
             if username_user:
                 raise UserAlreadyExistsException("username", user_in.username)
@@ -199,26 +177,16 @@ class UserService:
         update_data = user_in.model_dump(exclude_unset=True)
 
         self._ensure_no_privileged_self_update(
-            db_obj=db_obj,
-            update_data=update_data,
-            current_user=current_user
+            db_obj=db_obj, update_data=update_data, current_user=current_user
         )
 
         if "password" in update_data and update_data["password"]:
             update_data["password"] = get_password_hash(update_data["password"])
 
-        return await self.user_repo.update(
-            db,
-            db_obj=db_obj,
-            obj_in=update_data
-        )
+        return await self.user_repo.update(db, db_obj=db_obj, obj_in=update_data)
 
     async def change_password(
-        self,
-        db: AsyncSession,
-        *,
-        user_id: Any,
-        password_data: PasswordChangeRequest
+        self, db: AsyncSession, *, user_id: Any, password_data: PasswordChangeRequest
     ) -> User:
         db_obj = await self.get_user_by_id(db, user_id=user_id)
 
@@ -231,7 +199,7 @@ class UserService:
         return await self.user_repo.update(
             db,
             db_obj=db_obj,
-            obj_in={"password": get_password_hash(password_data.new_password)}
+            obj_in={"password": get_password_hash(password_data.new_password)},
         )
 
     async def delete_user(
@@ -245,20 +213,12 @@ class UserService:
         await self.get_user_by_id(db, user_id=user_id)
 
         deleted_user = await self.user_repo.soft_delete(
-            db,
-            user_id=user_id,
-            deleted_by=deleted_by,
-            deactivation_reason=reason
+            db, user_id=user_id, deleted_by=deleted_by, deactivation_reason=reason
         )
 
         return deleted_user
 
-    async def restore_user(
-        self,
-        db: AsyncSession,
-        *,
-        user_id: Any
-    ) -> User:
+    async def restore_user(self, db: AsyncSession, *, user_id: Any) -> User:
         db_obj = await self.get_user_by_id(db, user_id=user_id)
 
         if not db_obj.is_deleted:
@@ -272,36 +232,22 @@ class UserService:
                 "deleted_at": None,
                 "deleted_by": None,
                 "deactivation_reason": None,
-                "is_active": True
-            }
+                "is_active": True,
+            },
         )
 
-    async def activate_user(
-        self,
-        db: AsyncSession,
-        *,
-        user_id: Any
-    ) -> User:
+    async def activate_user(self, db: AsyncSession, *, user_id: Any) -> User:
         db_obj = await self.get_user_by_id(db, user_id=user_id)
 
         if db_obj.is_active:
             raise UserAlreadyActiveException()
 
         return await self.user_repo.update(
-            db,
-            db_obj=db_obj,
-            obj_in={
-                "is_active": True,
-                "deactivation_reason": None
-            }
+            db, db_obj=db_obj, obj_in={"is_active": True, "deactivation_reason": None}
         )
 
     async def deactivate_user(
-        self,
-        db: AsyncSession,
-        *,
-        user_id: Any,
-        reason: Optional[str] = None
+        self, db: AsyncSession, *, user_id: Any, reason: Optional[str] = None
     ) -> User:
         db_obj = await self.get_user_by_id(db, user_id=user_id)
 
@@ -311,8 +257,5 @@ class UserService:
         return await self.user_repo.update(
             db,
             db_obj=db_obj,
-            obj_in={
-                "is_active": False,
-                "deactivation_reason": reason
-            }
+            obj_in={"is_active": False, "deactivation_reason": reason},
         )

@@ -14,10 +14,7 @@ async def test_get_own_user_success(async_client, create_and_login_user):
 
     me = await _get_me(async_client, headers)
 
-    response = await async_client.get(
-        f"/api/v1/users/{me['id']}",
-        headers=headers
-    )
+    response = await async_client.get(f"/api/v1/users/{me['id']}", headers=headers)
 
     assert response.status_code == 200
     body = response.json()
@@ -39,7 +36,9 @@ async def test_get_user_without_token_returns_401(async_client, create_and_login
 
 
 @pytest.mark.asyncio
-async def test_normal_user_cannot_list_all_users_returns_403(async_client, create_and_login_user):
+async def test_normal_user_cannot_list_all_users_returns_403(
+    async_client, create_and_login_user
+):
     auth_data = await create_and_login_user()
     headers = auth_data["headers"]
 
@@ -64,8 +63,7 @@ async def test_superuser_can_list_all_users(
 
     await promote_user_to_superuser(payload["username"])
     headers = await get_auth_headers(
-        username=payload["username"],
-        password=payload["password"]
+        username=payload["username"], password=payload["password"]
     )
 
     response = await async_client.get("/api/v1/users", headers=headers)
@@ -89,10 +87,7 @@ async def test_normal_user_can_partial_update_own_non_privileged_fields(
 
     response = await async_client.patch(
         f"/api/v1/users/{me['id']}",
-        json={
-            "occupation": "Investigadora",
-            "address_city": "Queretaro"
-        },
+        json={"occupation": "Investigadora", "address_city": "Queretaro"},
         headers=headers,
     )
 
@@ -137,7 +132,7 @@ async def test_change_password_success(async_client, create_and_login_user, logi
         json={
             "current_password": payload["password"],
             "new_password": "NuevaClave1234",
-            "confirm_password": "NuevaClave1234"
+            "confirm_password": "NuevaClave1234",
         },
         headers=headers,
     )
@@ -146,10 +141,7 @@ async def test_change_password_success(async_client, create_and_login_user, logi
     body = response.json()
     assert body["codigo"] == 200
 
-    relogin = await login_user(
-        username=payload["username"],
-        password="NuevaClave1234"
-    )
+    relogin = await login_user(username=payload["username"], password="NuevaClave1234")
 
     assert relogin.status_code == 200
     relogin_body = relogin.json()
@@ -174,7 +166,7 @@ async def test_change_password_for_other_user_returns_403(
         json={
             "current_password": auth_data_2["payload"]["password"],
             "new_password": "NuevaClave1234",
-            "confirm_password": "NuevaClave1234"
+            "confirm_password": "NuevaClave1234",
         },
         headers=headers_1,
     )
@@ -200,8 +192,7 @@ async def test_superuser_can_create_user(
 
     await promote_user_to_superuser(admin_payload["username"])
     admin_headers = await get_auth_headers(
-        username=admin_payload["username"],
-        password=admin_payload["password"]
+        username=admin_payload["username"], password=admin_payload["password"]
     )
 
     public_payload = build_public_register_payload(unique_suffix)
@@ -222,6 +213,7 @@ async def test_superuser_can_create_user(
     assert body["codigo"] == 201
     assert body["resultado"]["username"] == public_payload["username"]
 
+
 @pytest.mark.asyncio
 async def test_superuser_can_deactivate_and_activate_user(
     async_client,
@@ -235,8 +227,7 @@ async def test_superuser_can_deactivate_and_activate_user(
 
     await promote_user_to_superuser(admin_payload["username"])
     admin_headers = await get_auth_headers(
-        username=admin_payload["username"],
-        password=admin_payload["password"]
+        username=admin_payload["username"], password=admin_payload["password"]
     )
 
     target_registration = await register_public_user()
@@ -244,8 +235,7 @@ async def test_superuser_can_deactivate_and_activate_user(
     assert target_registration["response"].status_code == 201
 
     target_headers = await get_auth_headers(
-        username=target_payload["username"],
-        password=target_payload["password"]
+        username=target_payload["username"], password=target_payload["password"]
     )
     target_me = await _get_me(async_client, target_headers)
 
@@ -283,8 +273,7 @@ async def test_superuser_can_delete_and_restore_user(
 
     await promote_user_to_superuser(admin_payload["username"])
     admin_headers = await get_auth_headers(
-        username=admin_payload["username"],
-        password=admin_payload["password"]
+        username=admin_payload["username"], password=admin_payload["password"]
     )
 
     target_registration = await register_public_user()
@@ -292,8 +281,7 @@ async def test_superuser_can_delete_and_restore_user(
     assert target_registration["response"].status_code == 201
 
     target_headers = await get_auth_headers(
-        username=target_payload["username"],
-        password=target_payload["password"]
+        username=target_payload["username"], password=target_payload["password"]
     )
     target_me = await _get_me(async_client, target_headers)
 
@@ -316,6 +304,7 @@ async def test_superuser_can_delete_and_restore_user(
     restore_body = restore_response.json()
     assert restore_body["codigo"] == 200
     assert restore_body["resultado"]["is_deleted"] is False
+
 
 @pytest.mark.asyncio
 async def test_normal_user_cannot_get_other_user_returns_403(
@@ -561,4 +550,3 @@ async def test_normal_user_cannot_delete_user_returns_403(
     assert response.status_code == 403
     body = response.json()
     assert body["codigo"] == 403
-
