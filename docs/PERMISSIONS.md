@@ -1,19 +1,20 @@
 # Matriz de permisos
 
-Este documento define los criterios de acceso para los endpoints actuales de la API y establece la regla que deben seguir los módulos futuros.
+Este documento define los criterios de acceso para los endpoints actuales de la API y establece reglas para módulos futuros.
 
-La matriz sirve como referencia antes de agregar nuevos módulos de negocio. El objetivo es evitar permisos ambiguos, endpoints administrativos expuestos por error o reglas inconsistentes entre módulos.
+La matriz sirve como referencia antes de agregar o modificar endpoints. El objetivo es evitar permisos ambiguos, endpoints administrativos expuestos por error o reglas inconsistentes entre módulos.
 
-## 1. Roles considerados
+## 1. Niveles de acceso
 
 La API distingue los siguientes niveles de acceso:
 
 | Nivel | Descripción |
 |---|---|
-| Público | No requiere autenticación. |
+| Público | No requiere access token. |
 | Usuario autenticado | Requiere access token válido. |
 | Dueño del recurso | Usuario autenticado que opera sobre sus propios datos. |
 | Superusuario | Usuario con permisos administrativos. |
+| Token específico | No requiere access token, pero requiere un token funcional válido, por ejemplo refresh token o reset token. |
 
 ## 2. Reglas generales
 
@@ -31,118 +32,129 @@ Antes de agregar un endpoint nuevo, debe definirse:
 Regla base:
 
 ```text
-Todo endpoint que modifique datos sensibles, usuarios, permisos, sesiones, productos administrativos o auditoría debe estar protegido.
+Todo endpoint que modifique usuarios, sesiones, recuperación de contraseña, auditoría, catálogo administrativo o estado persistente sensible debe estar protegido o condicionado por un token específico válido.
 ```
 
 ## 3. Auth
 
-| Endpoint | Público | Usuario autenticado | Dueño del recurso | Superusuario | Auditoría | Observaciones |
-|---|---:|---:|---:|---:|---:|---|
-| `POST /api/v1/auth/register` | Sí | Sí | No aplica | Sí | Sí | Registro público. Debe impedir autoelevación de privilegios. |
-| `POST /api/v1/auth/login` | Sí | Sí | No aplica | Sí | Sí | Debe tener rate limiting. |
-| `POST /api/v1/auth/refresh-token` | Sí | Sí | No aplica | Sí | Sí | Requiere refresh token válido. |
-| `POST /api/v1/auth/logout` | No | Sí | Sí | Sí | Sí | Revoca el refresh token enviado. |
-| `POST /api/v1/auth/logout-all` | No | Sí | Sí | Sí | Sí | Revoca todas las sesiones del usuario autenticado. |
-| `POST /api/v1/auth/forgot-password` | Sí | Sí | No aplica | Sí | Sí | Respuesta neutra para evitar enumeración de correos. |
-| `POST /api/v1/auth/reset-password` | Sí | Sí | No aplica | Sí | Sí | Requiere token válido, no usado y no expirado. |
-| `GET /api/v1/auth/me` | No | Sí | Sí | Sí | No obligatorio | Devuelve el usuario autenticado actual. |
+| Endpoint | Acceso requerido | Auditoría | Observaciones |
+|---|---|---:|---|
+| `POST /api/v1/auth/register` | Público | Sí | Registro público. Debe impedir autoelevación de privilegios. |
+| `POST /api/v1/auth/login` | Público | Sí | Debe tener rate limiting. |
+| `POST /api/v1/auth/refresh-token` | Token específico | Sí | Requiere refresh token válido, vigente y no revocado. |
+| `POST /api/v1/auth/logout` | Token específico | Sí | Revoca el refresh token enviado. |
+| `POST /api/v1/auth/logout-all` | Usuario autenticado | Sí | Revoca todas las sesiones del usuario autenticado. |
+| `POST /api/v1/auth/forgot-password` | Público | Sí | Debe responder de forma neutra para evitar enumeración de correos. |
+| `POST /api/v1/auth/reset-password` | Token específico | Sí | Requiere token de recuperación válido, no usado y no expirado. |
+| `GET /api/v1/auth/me` | Usuario autenticado | No obligatorio | Devuelve el usuario autenticado actual. |
 
 ## 4. Users
 
-| Endpoint | Público | Usuario autenticado | Dueño del recurso | Superusuario | Auditoría | Observaciones |
-|---|---:|---:|---:|---:|---:|---|
-| `GET /api/v1/users` | No | No | No | Sí | No obligatorio | Listado administrativo. |
-| `GET /api/v1/users/{user_id}` | No | Sí | Sí | Sí | No obligatorio | Un usuario solo debe consultar su propio perfil, salvo superusuario. |
-| `POST /api/v1/users` | No | No | No | Sí | Sí | Creación administrativa de usuarios. |
-| `PUT /api/v1/users/{user_id}` | No | Sí | Sí | Sí | Sí | Usuario normal no debe modificar campos privilegiados. |
-| `PATCH /api/v1/users/{user_id}` | No | Sí | Sí | Sí | Sí | Usuario normal no debe modificar campos privilegiados. |
-| `POST /api/v1/users/{user_id}/change-password` | No | Sí | Sí | Sí | Sí | Debe validar contraseña actual. |
-| `PATCH /api/v1/users/{user_id}/activate` | No | No | No | Sí | Sí | Acción administrativa. |
-| `PATCH /api/v1/users/{user_id}/deactivate` | No | No | No | Sí | Sí | Acción administrativa. |
-| `DELETE /api/v1/users/{user_id}` | No | No | No | Sí | Sí | Eliminación lógica o física según implementación. |
-| `PATCH /api/v1/users/{user_id}/restore` | No | No | No | Sí | Sí | Restauración administrativa. |
+| Endpoint | Acceso requerido | Auditoría | Observaciones |
+|---|---|---:|---|
+| `GET /api/v1/users` | Superusuario | No obligatorio | Listado administrativo. |
+| `GET /api/v1/users/{user_id}` | Dueño del recurso o superusuario | No obligatorio | Un usuario normal solo debe consultar su propio perfil. |
+| `POST /api/v1/users` | Superusuario | Sí | Creación administrativa de usuarios. |
+| `PUT /api/v1/users/{user_id}` | Dueño del recurso o superusuario | Sí | Usuario normal no debe modificar campos privilegiados. |
+| `PATCH /api/v1/users/{user_id}` | Dueño del recurso o superusuario | Sí | Usuario normal no debe modificar campos privilegiados. |
+| `POST /api/v1/users/{user_id}/change-password` | Dueño del recurso o superusuario | Sí | Debe validar contraseña actual cuando aplica. |
+| `PATCH /api/v1/users/{user_id}/activate` | Superusuario | Sí | Acción administrativa. |
+| `PATCH /api/v1/users/{user_id}/deactivate` | Superusuario | Sí | Acción administrativa. |
+| `DELETE /api/v1/users/{user_id}` | Superusuario | Sí | Eliminación lógica o física según implementación. |
+| `PATCH /api/v1/users/{user_id}/restore` | Superusuario | Sí | Restauración administrativa. |
 
 ## 5. Products
 
-| Endpoint | Público | Usuario autenticado | Dueño del recurso | Superusuario | Auditoría | Observaciones |
-|---|---:|---:|---:|---:|---:|---|
-| `GET /api/v1/products` | Sí | Sí | No aplica | Sí | No obligatorio | Catálogo público. No debe exponer productos eliminados lógicamente. |
-| `GET /api/v1/products/{id}` | Sí | Sí | No aplica | Sí | No obligatorio | Consulta pública de producto activo/no eliminado. |
-| `POST /api/v1/products` | No | Sí | No aplica | Según regla actual | Sí | Si se mantiene como operación administrativa, debe requerir superusuario. |
-| `PUT /api/v1/products/{id}` | No | Sí | No aplica | Según regla actual | Sí | Debe proteger modificación de catálogo. |
-| `PATCH /api/v1/products/{id}` | No | Sí | No aplica | Según regla actual | Sí | Debe proteger modificación parcial de catálogo. |
-| `PATCH /api/v1/products/{id}/activate` | No | No | No aplica | Sí | Sí | Acción administrativa. |
-| `PATCH /api/v1/products/{id}/deactivate` | No | No | No aplica | Sí | Sí | Acción administrativa. |
-| `DELETE /api/v1/products/{id}` | No | No | No aplica | Sí | Sí | Acción administrativa. |
-| `PATCH /api/v1/products/{id}/restore` | No | No | No aplica | Sí | Sí | Acción administrativa. |
+| Endpoint | Acceso requerido | Auditoría | Observaciones |
+|---|---|---:|---|
+| `GET /api/v1/products` | Público | No obligatorio | Catálogo público. No debe exponer productos eliminados lógicamente. |
+| `GET /api/v1/products/{id}` | Público | No obligatorio | Consulta pública de producto activo/no eliminado. |
+| `POST /api/v1/products` | Usuario autenticado | Sí | En la implementación actual requiere usuario autenticado. Puede endurecerse a superusuario en un PR posterior. |
+| `PUT /api/v1/products/{id}` | Usuario autenticado | Sí | En la implementación actual requiere usuario autenticado. Puede endurecerse a superusuario en un PR posterior. |
+| `PATCH /api/v1/products/{id}` | Usuario autenticado | Sí | En la implementación actual requiere usuario autenticado. Puede endurecerse a superusuario en un PR posterior. |
+| `PATCH /api/v1/products/{id}/activate` | Superusuario | Sí | Acción administrativa. |
+| `PATCH /api/v1/products/{id}/deactivate` | Superusuario | Sí | Acción administrativa. |
+| `DELETE /api/v1/products/{id}` | Superusuario | Sí | Acción administrativa. |
+| `PATCH /api/v1/products/{id}/restore` | Superusuario | Sí | Acción administrativa. |
 
-## 6. Audit Logs
+## 6. Categories
 
-| Endpoint | Público | Usuario autenticado | Dueño del recurso | Superusuario | Auditoría | Observaciones |
-|---|---:|---:|---:|---:|---:|---|
-| `GET /api/v1/audit-logs` | No | No | No | Sí | No obligatorio | Solo debe estar disponible para superusuario. |
+| Endpoint | Acceso requerido | Auditoría | Observaciones |
+|---|---|---:|---|
+| `GET /api/v1/categories` | Público | No obligatorio | Devuelve categorías activas y no eliminadas. |
+| `GET /api/v1/categories/{category_id}` | Público | No obligatorio | Devuelve una categoría activa y no eliminada. |
+| `POST /api/v1/categories` | Superusuario | Sí | Creación administrativa de categorías. |
+| `PUT /api/v1/categories/{category_id}` | Superusuario | Sí | Actualización completa de categoría. |
+| `PATCH /api/v1/categories/{category_id}` | Superusuario | Sí | Actualización parcial de categoría. |
+| `PATCH /api/v1/categories/{category_id}/activate` | Superusuario | Sí | Acción administrativa. |
+| `PATCH /api/v1/categories/{category_id}/deactivate` | Superusuario | Sí | Acción administrativa. |
+| `DELETE /api/v1/categories/{category_id}` | Superusuario | Sí | Eliminación lógica. |
+| `PATCH /api/v1/categories/{category_id}/restore` | Superusuario | Sí | Restauración administrativa. |
+
+Las categorías funcionan como catálogo administrativo. La lectura es pública, pero toda operación de escritura requiere superusuario.
+
+La consulta pública debe devolver únicamente categorías con:
+
+```text
+is_active = True
+is_deleted = False
+```
+
+## 7. Audit Logs
+
+| Endpoint | Acceso requerido | Auditoría | Observaciones |
+|---|---|---:|---|
+| `GET /api/v1/audit-logs` | Superusuario | No obligatorio | Solo debe estar disponible para superusuario. |
 
 Los logs de auditoría pueden contener trazabilidad operativa. No deben exponerse a usuarios normales.
 
-## 7. Módulos futuros
+## 8. Módulos futuros
 
 Los siguientes módulos aún no forman parte de la API principal, pero la matriz define el criterio esperado para cuando se implementen.
 
-## 8. Categories
-
-| Endpoint futuro | Público | Usuario autenticado | Dueño del recurso | Superusuario | Auditoría | Observaciones |
-|---|---:|---:|---:|---:|---:|---|
-| `GET /api/v1/categories` | Sí | Sí | No aplica | Sí | No obligatorio | Listado público de categorías activas. |
-| `GET /api/v1/categories/{category_id}` | Sí | Sí | No aplica | Sí | No obligatorio | Consulta pública de categoría activa. |
-| `POST /api/v1/categories` | No | No | No aplica | Sí | Sí | Creación administrativa. |
-| `PATCH /api/v1/categories/{category_id}` | No | No | No aplica | Sí | Sí | Actualización administrativa. |
-| `PATCH /api/v1/categories/{category_id}/activate` | No | No | No aplica | Sí | Sí | Acción administrativa. |
-| `PATCH /api/v1/categories/{category_id}/deactivate` | No | No | No aplica | Sí | Sí | Acción administrativa. |
-| `DELETE /api/v1/categories/{category_id}` | No | No | No aplica | Sí | Sí | Eliminación administrativa. |
-
 ## 9. Inventory
 
-| Endpoint futuro | Público | Usuario autenticado | Dueño del recurso | Superusuario | Auditoría | Observaciones |
-|---|---:|---:|---:|---:|---:|---|
-| `GET /api/v1/inventory` | No | No | No aplica | Sí | No obligatorio | Consulta administrativa. |
-| `GET /api/v1/inventory/{product_id}` | No | No | No aplica | Sí | No obligatorio | Consulta administrativa por producto. |
-| `PATCH /api/v1/inventory/{product_id}` | No | No | No aplica | Sí | Sí | Ajuste manual de stock. |
-| `POST /api/v1/inventory/{product_id}/reserve` | No | Sí | Según operación | Sí | Sí | Debe usarse dentro de flujos transaccionales. |
-| `POST /api/v1/inventory/{product_id}/release` | No | Sí | Según operación | Sí | Sí | Debe liberar stock reservado cuando se cancele una orden. |
+| Endpoint futuro | Acceso requerido | Auditoría | Observaciones |
+|---|---|---:|---|
+| `GET /api/v1/inventory` | Superusuario | No obligatorio | Consulta administrativa. |
+| `GET /api/v1/inventory/{product_id}` | Superusuario | No obligatorio | Consulta administrativa por producto. |
+| `PATCH /api/v1/inventory/{product_id}` | Superusuario | Sí | Ajuste manual de stock. |
+| `POST /api/v1/inventory/{product_id}/reserve` | Usuario autenticado o flujo interno | Sí | Debe usarse dentro de flujos transaccionales. |
+| `POST /api/v1/inventory/{product_id}/release` | Usuario autenticado o flujo interno | Sí | Debe liberar stock reservado cuando se cancele una orden. |
 
 El inventario debe tratarse como dato crítico. Debe cuidarse la consistencia ante órdenes, cancelaciones y pagos.
 
 ## 10. Cart
 
-| Endpoint futuro | Público | Usuario autenticado | Dueño del recurso | Superusuario | Auditoría | Observaciones |
-|---|---:|---:|---:|---:|---:|---|
-| `GET /api/v1/cart` | No | Sí | Sí | Sí | No obligatorio | Usuario consulta su propio carrito. |
-| `POST /api/v1/cart/items` | No | Sí | Sí | Sí | No obligatorio | Agrega producto al carrito del usuario autenticado. |
-| `PATCH /api/v1/cart/items/{item_id}` | No | Sí | Sí | Sí | No obligatorio | Modifica cantidad de un item propio. |
-| `DELETE /api/v1/cart/items/{item_id}` | No | Sí | Sí | Sí | No obligatorio | Elimina item propio. |
-| `DELETE /api/v1/cart` | No | Sí | Sí | Sí | No obligatorio | Vacía carrito propio. |
+| Endpoint futuro | Acceso requerido | Auditoría | Observaciones |
+|---|---|---:|---|
+| `GET /api/v1/cart` | Usuario autenticado | No obligatorio | Usuario consulta su propio carrito. |
+| `POST /api/v1/cart/items` | Usuario autenticado | No obligatorio | Agrega producto al carrito del usuario autenticado. |
+| `PATCH /api/v1/cart/items/{item_id}` | Dueño del recurso | No obligatorio | Modifica cantidad de un item propio. |
+| `DELETE /api/v1/cart/items/{item_id}` | Dueño del recurso | No obligatorio | Elimina item propio. |
+| `DELETE /api/v1/cart` | Usuario autenticado | No obligatorio | Vacía carrito propio. |
 
 Un usuario no debe poder consultar ni modificar carritos de otros usuarios.
 
 ## 11. Orders
 
-| Endpoint futuro | Público | Usuario autenticado | Dueño del recurso | Superusuario | Auditoría | Observaciones |
-|---|---:|---:|---:|---:|---:|---|
-| `POST /api/v1/orders` | No | Sí | Sí | Sí | Sí | Crea orden desde carrito o payload válido. |
-| `GET /api/v1/orders` | No | Sí | Sí | Sí | No obligatorio | Usuario ve sus órdenes; superusuario puede listar todas. |
-| `GET /api/v1/orders/{order_id}` | No | Sí | Sí | Sí | No obligatorio | Usuario solo ve sus propias órdenes. |
-| `PATCH /api/v1/orders/{order_id}/cancel` | No | Sí | Sí | Sí | Sí | Usuario puede cancelar si el estado lo permite. |
-| `PATCH /api/v1/orders/{order_id}/status` | No | No | No | Sí | Sí | Cambio administrativo de estado. |
+| Endpoint futuro | Acceso requerido | Auditoría | Observaciones |
+|---|---|---:|---|
+| `POST /api/v1/orders` | Usuario autenticado | Sí | Crea orden desde carrito o payload válido. |
+| `GET /api/v1/orders` | Usuario autenticado o superusuario | No obligatorio | Usuario ve sus órdenes; superusuario puede listar todas. |
+| `GET /api/v1/orders/{order_id}` | Dueño del recurso o superusuario | No obligatorio | Usuario solo ve sus propias órdenes. |
+| `PATCH /api/v1/orders/{order_id}/cancel` | Dueño del recurso o superusuario | Sí | Usuario puede cancelar si el estado lo permite. |
+| `PATCH /api/v1/orders/{order_id}/status` | Superusuario | Sí | Cambio administrativo de estado. |
 
 Las órdenes requieren reglas de transición de estado. No debe permitirse cualquier cambio arbitrario.
 
 ## 12. Payments
 
-| Endpoint futuro | Público | Usuario autenticado | Dueño del recurso | Superusuario | Auditoría | Observaciones |
-|---|---:|---:|---:|---:|---:|---|
-| `POST /api/v1/payments/simulate` | No | Sí | Sí | Sí | Sí | Pago simulado para pruebas de flujo. |
-| `GET /api/v1/payments/{payment_id}` | No | Sí | Sí | Sí | No obligatorio | Usuario consulta pagos propios. |
-| `PATCH /api/v1/payments/{payment_id}/refund` | No | No | No | Sí | Sí | Reembolso administrativo. |
+| Endpoint futuro | Acceso requerido | Auditoría | Observaciones |
+|---|---|---:|---|
+| `POST /api/v1/payments/simulate` | Usuario autenticado | Sí | Pago simulado para pruebas de flujo. |
+| `GET /api/v1/payments/{payment_id}` | Dueño del recurso o superusuario | No obligatorio | Usuario consulta pagos propios. |
+| `PATCH /api/v1/payments/{payment_id}/refund` | Superusuario | Sí | Reembolso administrativo. |
 
 Aunque el pago sea simulado, debe tratarse como flujo sensible.
 
@@ -202,7 +214,7 @@ Antes de abrir un Pull Request con endpoints nuevos, responder:
 
 ```text
 ¿El endpoint es público?
-¿Requiere token?
+¿Requiere access token?
 ¿Requiere superusuario?
 ¿El usuario solo puede operar sobre su propio recurso?
 ¿El recurso pertenece realmente al usuario autenticado?
@@ -236,5 +248,5 @@ Antes de fusionar cambios que agreguen endpoints:
 La matriz de permisos debe estar actualizada.
 Las pruebas de autorización deben pasar.
 Los eventos auditables deben estar cubiertos.
-No debe haber endpoints administrativos expuestos como públicos.
+No debe haber endpoints administrativos expuestos como públicos por accidente.
 ```

@@ -1,14 +1,14 @@
-# FastAPI Users & Products JWT API
+# FastAPI Users, Products & Categories JWT API
 
-API REST desarrollada con FastAPI para gestión de usuarios y productos, autenticación JWT, control de acceso por roles, auditoría, manejo de sesiones con refresh tokens, recuperación de contraseña, rate limiting, limpieza manual de tokens, migraciones con Alembic, calidad estática con Black/Ruff, CI con GitHub Actions, ejecución con Docker y despliegue en Render.
+API REST desarrollada con FastAPI para gestión de usuarios, productos y categorías, autenticación JWT, control de acceso por roles, auditoría, manejo de sesiones con refresh tokens, recuperación de contraseña, rate limiting, limpieza manual de tokens, migraciones con Alembic, calidad estática con Black/Ruff, CI con GitHub Actions, ejecución con Docker y despliegue en Render.
 
 ## Descripción
 
-Este proyecto implementa una API backend con arquitectura por capas, pensada para crecimiento, mantenimiento y validación continua. Incluye módulos de usuarios, productos y autenticación, documentación interactiva con Swagger, observabilidad mediante logs técnicos, auditoría persistida en PostgreSQL, migraciones reproducibles con Alembic, pruebas automatizadas, control de sesiones del lado del servidor mediante refresh tokens persistidos, rotados y revocables, recuperación de contraseña con envío real de correo y herramientas de calidad estática.
+Este proyecto implementa una API backend con arquitectura por capas, pensada para crecimiento, mantenimiento y validación continua. Incluye módulos de usuarios, productos, categorías y autenticación, documentación interactiva con Swagger, observabilidad mediante logs técnicos, auditoría persistida en PostgreSQL, migraciones reproducibles con Alembic, pruebas automatizadas, control de sesiones del lado del servidor mediante refresh tokens persistidos, rotados y revocables, recuperación de contraseña con envío real de correo y herramientas de calidad estática.
 
-El desarrollo se realizó de forma incremental: primero la lógica de usuarios y productos, después autenticación y autorización, luego observabilidad y auditoría, más tarde la formalización del esquema con Alembic y CI, y finalmente el endurecimiento del flujo de sesión con rotación y revocación de refresh tokens, cierre global de sesiones, recuperación de contraseña, rate limiting en endpoints sensibles, limpieza manual de tokens obsoletos, envío real de correos de recuperación, calidad estática y documentación técnica interna.
+El desarrollo se realizó de forma incremental: primero la lógica de usuarios y productos, después autenticación y autorización, luego observabilidad y auditoría, más tarde la formalización del esquema con Alembic y CI, después el endurecimiento del flujo de sesión con rotación y revocación de refresh tokens, cierre global de sesiones, recuperación de contraseña, rate limiting en endpoints sensibles, limpieza manual de tokens obsoletos, envío real de correos de recuperación, calidad estática y documentación técnica interna. Posteriormente se agregó el módulo de categorías como primer módulo funcional de expansión del catálogo.
 
-El proyecto ya puede tratarse como una base backend escalable para crecer hacia módulos de negocio más completos, como categorías, inventario, carrito, órdenes y pagos simulados.
+El proyecto ya puede tratarse como una base backend escalable para crecer hacia módulos de negocio más completos, como relación producto-categoría, inventario, carrito, órdenes y pagos simulados.
 
 ## Demo desplegada
 
@@ -46,6 +46,19 @@ La API incluye documentación interactiva con Swagger, lo que permite explorar e
 - Eliminación lógica y restauración.
 - Catálogo público sin exponer productos eliminados lógicamente.
 - Protección de operaciones administrativas para superusuario.
+
+### Categorías
+
+- Alta de categorías.
+- Consulta pública de categorías activas.
+- Consulta individual por ID.
+- Búsqueda por nombre, slug o descripción.
+- Slug único y normalizado automáticamente.
+- Actualización completa y parcial.
+- Activación y desactivación.
+- Eliminación lógica y restauración.
+- Protección de operaciones administrativas para superusuario.
+- Auditoría de operaciones administrativas sobre categorías.
 
 ### Seguridad y autenticación
 
@@ -104,12 +117,15 @@ La API incluye documentación interactiva con Swagger, lo que permite explorar e
 - Auditoría persistida en PostgreSQL.
 - Endpoint protegido `GET /api/v1/audit-logs`.
 - Correlación entre logs técnicos y auditoría mediante `request_id`.
-- Auditoría de eventos sensibles como `login`, `refresh_token`, `logout`, `logout_all`, `forgot_password`, `reset_password` y operaciones administrativas sobre usuarios y productos.
+- Auditoría de eventos sensibles como `login`, `refresh_token`, `logout`, `logout_all`, `forgot_password`, `reset_password` y operaciones administrativas sobre usuarios, productos y categorías.
 
 ### Migraciones y persistencia
 
 - Esquema versionado con Alembic.
 - Migración inicial real para reconstrucción desde base vacía.
+- Migración para refresh tokens.
+- Migración para tokens de recuperación de contraseña.
+- Migración para categorías.
 - Flujo reproducible con `revision --autogenerate` y `upgrade head`.
 - Arranque del contenedor con migraciones aplicadas antes de iniciar la API.
 
@@ -122,8 +138,7 @@ La API incluye documentación interactiva con Swagger, lo que permite explorar e
 - Formato automático con Black.
 - Análisis estático con Ruff.
 - Configuración centralizada de calidad en `pyproject.toml`.
-- **337 pruebas aprobadas**.
-- **98% de cobertura global**.
+- Validación de cobertura con `pytest-cov`.
 
 ## Tecnologías utilizadas
 
@@ -226,6 +241,7 @@ app/
 │       └── endpoints/
 │           ├── audit_logs.py
 │           ├── auth.py
+│           ├── categories.py
 │           ├── products.py
 │           └── users.py
 ├── core/
@@ -236,10 +252,17 @@ app/
 │   ├── request_logging_middleware.py
 │   ├── security.py
 │   ├── exceptions/
+│   │   ├── auth_exceptions.py
+│   │   ├── base.py
+│   │   ├── category_exceptions.py
+│   │   ├── common.py
+│   │   ├── product_exceptions.py
+│   │   └── user_exceptions.py
 │   └── handlers/
 ├── models/
 │   ├── __init__.py
 │   ├── audit_log.py
+│   ├── category.py
 │   ├── password_reset_token.py
 │   ├── product.py
 │   ├── refresh_token.py
@@ -247,6 +270,7 @@ app/
 ├── repositories/
 │   ├── audit_log_repository.py
 │   ├── base.py
+│   ├── category_repository.py
 │   ├── password_reset_token_repository.py
 │   ├── product_repository.py
 │   ├── refresh_token_repository.py
@@ -254,6 +278,7 @@ app/
 ├── schemas/
 │   ├── audit_log.py
 │   ├── auth.py
+│   ├── category.py
 │   ├── common.py
 │   ├── product.py
 │   ├── response.py
@@ -265,6 +290,7 @@ app/
 │   ├── __init__.py
 │   ├── audit_log_service.py
 │   ├── auth_service.py
+│   ├── category_service.py
 │   ├── email_service.py
 │   ├── password_reset_token_service.py
 │   ├── product_service.py
@@ -277,6 +303,11 @@ app/
 alembic/
 ├── env.py
 └── versions/
+    ├── 16472867c38c_create_initial_schema.py
+    ├── ae8ddeebea92_add_refresh_tokens_table.py
+    ├── b3f4e1c8a901_add_password_reset_tokens_table.py
+    ├── c9a2f7d41b10_make_password_reset_token_timestamps_timezone_aware.py
+    └── 40ed006f73c5_add_categories_table.py
 
 docker/
 └── fastapi/
@@ -302,7 +333,46 @@ docs/
 
 tests/
 ├── integration/
+│   ├── test_audit_log_repository.py
+│   ├── test_audit_logs_endpoints.py
+│   ├── test_auth_endpoints.py
+│   ├── test_base_repository.py
+│   ├── test_categories_endpoints.py
+│   ├── test_category_repository.py
+│   ├── test_password_reset_token_service.py
+│   ├── test_product_repository.py
+│   ├── test_products_endpoints.py
+│   ├── test_refresh_token_cleanup.py
+│   ├── test_refresh_token_repository.py
+│   ├── test_user_repository.py
+│   └── test_users_endpoints.py
 ├── unit/
+│   ├── test_audit_log_service.py
+│   ├── test_audit_logs_endpoints_unit.py
+│   ├── test_auth_endpoints_unit.py
+│   ├── test_auth_exceptions.py
+│   ├── test_auth_service.py
+│   ├── test_categories_endpoints_unit.py
+│   ├── test_category_service.py
+│   ├── test_cleanup_refresh_tokens_script.py
+│   ├── test_common_exceptions.py
+│   ├── test_common_schemas.py
+│   ├── test_config.py
+│   ├── test_database.py
+│   ├── test_email_service.py
+│   ├── test_exception_handlers.py
+│   ├── test_main.py
+│   ├── test_product_service.py
+│   ├── test_products_endpoints_unit.py
+│   ├── test_rate_limit.py
+│   ├── test_refresh_token_service.py
+│   ├── test_request_logging_middleware.py
+│   ├── test_security.py
+│   ├── test_token_service.py
+│   ├── test_user_exceptions.py
+│   ├── test_user_model.py
+│   ├── test_user_service.py
+│   └── test_users_endpoints_unit.py
 ├── test_connection.py
 ├── test_db.py
 └── test_models.py
@@ -358,6 +428,18 @@ README.md
 - `DELETE /api/v1/products/{id}`
 - `PATCH /api/v1/products/{id}/restore`
 
+### Categories
+
+- `GET /api/v1/categories`
+- `GET /api/v1/categories/{category_id}`
+- `POST /api/v1/categories`
+- `PUT /api/v1/categories/{category_id}`
+- `PATCH /api/v1/categories/{category_id}`
+- `PATCH /api/v1/categories/{category_id}/activate`
+- `PATCH /api/v1/categories/{category_id}/deactivate`
+- `DELETE /api/v1/categories/{category_id}`
+- `PATCH /api/v1/categories/{category_id}/restore`
+
 ### Audit Logs
 
 - `GET /api/v1/audit-logs`
@@ -405,6 +487,23 @@ Para salir de los logs, usar `Ctrl + C`. Esto no detiene los contenedores.
 
 - Swagger UI: `http://localhost:8000/docs`
 - Health check: `http://localhost:8000/health`
+
+## Nota sobre PostgreSQL 18 y Docker
+
+El proyecto usa `postgres:18-alpine`. Para esta versión, el volumen de PostgreSQL se monta en:
+
+```text
+/var/lib/postgresql
+```
+
+Esto evita el error de inicialización asociado con montar el volumen directamente en `/var/lib/postgresql/data` en imágenes PostgreSQL 18+.
+
+Si la base local queda en un estado inconsistente durante pruebas o cambios de migraciones, puede reconstruirse desde cero con:
+
+```bash
+docker compose down -v
+docker compose up -d --build
+```
 
 ## Despliegue en Render
 
@@ -510,6 +609,13 @@ La tabla `audit_logs` registra eventos sensibles como:
 - `deactivate_product`
 - `delete_product`
 - `restore_product`
+- `create_category`
+- `update_category`
+- `partial_update_category`
+- `activate_category`
+- `deactivate_category`
+- `delete_category`
+- `restore_category`
 
 Cada evento conserva acción, entidad, actor, rol, `request_id`, estado, detalle y fecha.
 
@@ -529,6 +635,12 @@ Dentro de Docker:
 docker compose exec api alembic revision --autogenerate -m "descripcion del cambio"
 docker compose exec api alembic upgrade head
 docker compose exec api alembic current
+```
+
+Migración actual de categorías:
+
+```text
+40ed006f73c5_add_categories_table.py
 ```
 
 ## Limpieza manual de refresh tokens
@@ -590,10 +702,14 @@ Aplicar correcciones automáticas seguras de Ruff:
 docker compose exec api ruff check app tests --fix
 ```
 
-Estado actual:
+Pruebas específicas del módulo de categorías:
 
-- **337 pruebas aprobadas**.
-- **98% de cobertura global**.
+```bash
+docker compose exec api pytest tests/unit/test_category_service.py -q
+docker compose exec api pytest tests/unit/test_categories_endpoints_unit.py -q
+docker compose exec api pytest tests/integration/test_category_repository.py -q
+docker compose exec api pytest tests/integration/test_categories_endpoints.py -q
+```
 
 ## Documentación operativa y técnica
 
@@ -633,14 +749,15 @@ Este proyecto se distribuye bajo licencia MIT. Consulta el archivo `LICENSE` par
 
 El proyecto se encuentra en un estado funcional y consolidado. La base principal del backend ya está implementada, cubierta con pruebas automatizadas, desplegada públicamente y documentada.
 
-Actualmente incluye autenticación JWT, refresh tokens persistidos, recuperación de contraseña con envío real de correo, auditoría, rate limiting, migraciones con Alembic, ejecución con Docker, CI con GitHub Actions, calidad estática con Black/Ruff y documentación técnica interna.
+Actualmente incluye autenticación JWT, refresh tokens persistidos, recuperación de contraseña con envío real de correo, auditoría, rate limiting, migraciones con Alembic, ejecución con Docker, CI con GitHub Actions, calidad estática con Black/Ruff, documentación técnica interna y el módulo de categorías como primera expansión funcional del catálogo.
 
 El proyecto ya puede tratarse como una base backend escalable para crecer hacia módulos de negocio más completos.
 
 ## Siguientes pasos
 
-- Implementar módulo de categorías.
-- Relacionar productos con categorías.
+- Relacionar productos con categorías mediante `category_id`.
+- Agregar filtros de productos por categoría.
+- Actualizar Postman con los endpoints de categorías.
 - Agregar módulo de inventario.
 - Agregar carrito de compras.
 - Agregar órdenes y detalle de órdenes.
