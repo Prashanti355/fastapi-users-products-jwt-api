@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.exceptions.auth_exceptions import InsufficientPermissionsException
 from app.repositories.audit_log_repository import AuditLogRepository
+from app.repositories.category_repository import CategoryRepository
 from app.repositories.password_reset_token_repository import (
     PasswordResetTokenRepository,
 )
@@ -14,6 +15,7 @@ from app.repositories.user_repository import UserRepository
 from app.schemas.auth import CurrentUser
 from app.services.audit_log_service import AuditLogService
 from app.services.auth_service import AuthService
+from app.services.category_service import CategoryService
 from app.services.email_service import EmailService
 from app.services.password_reset_token_service import (
     PasswordResetTokenService,
@@ -64,6 +66,16 @@ async def get_product_service(
     repository: ProductRepository = Depends(get_product_repository),
 ) -> ProductService:
     return ProductService(repository)
+
+
+async def get_category_repository() -> CategoryRepository:
+    return CategoryRepository()
+
+
+async def get_category_service(
+    repository: CategoryRepository = Depends(get_category_repository),
+) -> CategoryService:
+    return CategoryService(repository)
 
 
 async def get_audit_log_service(
